@@ -15,6 +15,7 @@ export class GameScene extends Phaser.Scene {
   private canDrop      = true;
   private gameOver     = false;
   private lastDropTime = 0;
+  private bestScore    = 0;
 
   // --- fx ---
   private particles!: ParticleManager;
@@ -22,8 +23,10 @@ export class GameScene extends Phaser.Scene {
 
   // --- game objects ---
   private scoreText!:    Phaser.GameObjects.Text;
+  private bestText!:     Phaser.GameObjects.Text;
   private nextPreview!:  Phaser.GameObjects.Image;
   private aimIndicator!: Phaser.GameObjects.Image;
+  private dropGuide!:    Phaser.GameObjects.Graphics;
   private activeEls: Phaser.Physics.Matter.Image[] = [];
 
   constructor() { super({ key: 'GameScene' }); }
@@ -36,13 +39,15 @@ export class GameScene extends Phaser.Scene {
     this.score     = 0;
     this.activeEls = [];
     this.gameOver  = false;
-    this.canDrop      = true;
+    this.canDrop   = true;
+    this.bestScore = parseInt(localStorage.getItem('elementra_best') ?? '0', 10);
 
     this.sfx       = new SoundManager();
     this.particles = new ParticleManager(this);
 
     this.buildTextures();
     this.buildBackground();
+    this.dropGuide = this.add.graphics().setDepth(1);
     this.buildWalls();
     this.buildUI();
     this.prepareNext();
@@ -127,6 +132,10 @@ export class GameScene extends Phaser.Scene {
     this.add.text(16, 10, 'SCORE', { fontSize: '11px', color: '#556' }).setDepth(5);
     this.scoreText = this.add.text(16, 24, '0', {
       fontSize: '28px', color: '#fff', fontStyle: 'bold',
+    }).setDepth(5);
+    this.add.text(16, 58, 'BEST', { fontSize: '11px', color: '#445' }).setDepth(5);
+    this.bestText = this.add.text(16, 72, this.bestScore > 0 ? this.bestScore.toString() : '-', {
+      fontSize: '18px', color: '#888', fontStyle: 'bold',
     }).setDepth(5);
 
     this.add.text(GAME_WIDTH - 62, 10, 'NEXT', { fontSize: '11px', color: '#556' }).setDepth(5);
@@ -244,6 +253,11 @@ export class GameScene extends Phaser.Scene {
 
     this.score += ELEMENTS[level - 1].points;
     this.scoreText.setText(this.score.toString());
+    if (this.score > this.bestScore) {
+      this.bestScore = this.score;
+      this.bestText.setText(this.bestScore.toString());
+      localStorage.setItem('elementra_best', this.bestScore.toString());
+    }
 
     this.sfx.playMerge(level);
     this.particles.burst(mx, my, level);
@@ -281,12 +295,23 @@ export class GameScene extends Phaser.Scene {
   // ─────────────────────────────────────────────
 
   private updateAim() {
-    if (!this.canDrop || !this.aimIndicator?.visible) return;
+    if (!this.canDrop || !this.aimIndicator?.visible) {
+      this.dropGuide.clear();
+      return;
+    }
     const el = ELEMENTS[this.currentLevel - 1];
     const px = this.input.activePointer.x;
-    this.aimIndicator.x = Phaser.Math.Clamp(
-      px, WALL_T + el.radius, GAME_WIDTH - WALL_T - el.radius,
-    );
+    const x  = Phaser.Math.Clamp(px, WALL_T + el.radius, GAME_WIDTH - WALL_T - el.radius);
+    this.aimIndicator.x = x;
+
+    this.dropGuide.clear();
+    this.dropGuide.lineStyle(1, 0xffffff, 0.2);
+    const toY = GAME_HEIGHT - WALL_T;
+    let   y   = DROP_Y + el.radius + 2;
+    while (y < toY) {
+      this.dropGuide.lineBetween(x, y, x, Math.min(y + 5, toY));
+      y += 10;
+    }
   }
 
   private checkGameOver() {
@@ -309,19 +334,24 @@ export class GameScene extends Phaser.Scene {
     this.canDrop  = false;
     this.sfx.playGameOver();
     this.aimIndicator?.setVisible(false);
+    this.dropGuide.clear();
 
-    const cx = GAME_WIDTH / 2;
-    const cy = GAME_HEIGHT / 2;
+    const cx      = GAME_WIDTH / 2;
+    const cy      = GAME_HEIGHT / 2;
+    const isNewBest = this.score > 0 && this.score === this.bestScore;
 
-    this.add.rectangle(cx, cy, 310, 190, 0x000000, 0.88).setDepth(20);
-    this.add.text(cx, cy - 55, 'GAME OVER', {
+    this.add.rectangle(cx, cy, 310, 210, 0x000000, 0.88).setDepth(20);
+    this.add.text(cx, cy - 65, 'GAME OVER', {
       fontSize: '34px', color: '#ff4455', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(21);
-    this.add.text(cx, cy - 10, `Score: ${this.score}`, {
+    this.add.text(cx, cy - 18, `Score: ${this.score}`, {
       fontSize: '22px', color: '#ffffff',
     }).setOrigin(0.5).setDepth(21);
+    this.add.text(cx, cy + 10, isNewBest ? '🏆 Neuer Rekord!' : `Bestleistung: ${this.bestScore}`, {
+      fontSize: '14px', color: isNewBest ? '#ffdd00' : '#777777',
+    }).setOrigin(0.5).setDepth(21);
 
-    this.add.text(cx, cy + 45, '▶  NEU STARTEN', {
+    this.add.text(cx, cy + 52, '▶  NEU STARTEN', {
       fontSize: '18px', color: '#00ff88',
       backgroundColor: '#003322',
       padding: { x: 18, y: 10 },
