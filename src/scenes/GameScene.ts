@@ -313,35 +313,112 @@ export class GameScene extends Phaser.Scene {
   }
 
   private triggerGameOver() {
-    this.gameOver = true;
-    this.canDrop  = false;
+    this.gameOver       = true;
+    this.canDrop        = false;
+    this.time.timeScale = 1; // reset any leftover hit-stop
     this.sfx.playGameOver();
     this.aimIndicator?.setVisible(false);
     this.dropGuide.clear();
 
-    const cx      = GAME_WIDTH / 2;
-    const cy      = GAME_HEIGHT / 2;
+    const cx        = GAME_WIDTH / 2;
+    const cy        = GAME_HEIGHT / 2;
     const isNewBest = this.score > 0 && this.score === this.bestScore;
+    const finalScore = this.score;
 
-    this.add.rectangle(cx, cy, 310, 210, 0x000000, 0.88).setDepth(20);
-    this.add.text(cx, cy - 65, 'GAME OVER', {
-      fontSize: '34px', color: '#ff4455', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(21);
-    this.add.text(cx, cy - 18, `Score: ${this.score}`, {
-      fontSize: '22px', color: '#ffffff',
-    }).setOrigin(0.5).setDepth(21);
-    this.add.text(cx, cy + 10, isNewBest ? '🏆 Neuer Rekord!' : `Bestleistung: ${this.bestScore}`, {
-      fontSize: '14px', color: isNewBest ? '#ffdd00' : '#777777',
-    }).setOrigin(0.5).setDepth(21);
+    // initial shake
+    this.cameras.main.shake(220, 0.012);
 
-    this.add.text(cx, cy + 52, '▶  NEU STARTEN', {
+    // 1 — overlay fades in
+    const overlay = this.add.rectangle(cx, cy, 320, 220, 0x000000, 0).setDepth(20);
+    this.tweens.add({ targets: overlay, fillAlpha: 0.9, duration: 280 });
+
+    // 2 — "GAME OVER" slams in
+    const goText = this.add.text(cx, cy - 40, 'GAME OVER', {
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '38px', color: '#ff4455', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(21).setAlpha(0).setScale(0.3);
+
+    this.time.delayedCall(180, () => {
+      this.tweens.add({
+        targets: goText, alpha: 1, scale: 1, y: cy - 68,
+        duration: 380, ease: 'Back.Out',
+      });
+      this.cameras.main.shake(100, 0.007);
+    });
+
+    // 3 — score counts up
+    const scoreText = this.add.text(cx, cy - 15, 'Score: 0', {
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '24px', color: '#ffffff',
+    }).setOrigin(0.5).setDepth(21).setAlpha(0);
+
+    this.time.delayedCall(560, () => {
+      this.tweens.add({ targets: scoreText, alpha: 1, duration: 180 });
+      const steps = Math.min(finalScore, 24);
+      const inc   = steps > 0 ? Math.ceil(finalScore / steps) : 0;
+      let   cur   = 0;
+      this.time.addEvent({
+        delay: 28, repeat: steps,
+        callback: () => {
+          cur = Math.min(cur + inc, finalScore);
+          scoreText.setText(`Score: ${cur}`);
+        },
+      });
+    });
+
+    // 4 — best score / new record line
+    const bestText = this.add.text(cx, cy + 22, '', {
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '15px',
+      color: isNewBest ? '#ffdd00' : '#666666',
+    }).setOrigin(0.5).setDepth(21).setAlpha(0);
+
+    this.time.delayedCall(920, () => {
+      bestText.setText(isNewBest ? '🏆 Neuer Rekord!' : `Bestleistung: ${this.bestScore}`);
+      this.tweens.add({ targets: bestText, alpha: 1, duration: 260 });
+      if (isNewBest) {
+        this.confettiBurst(cx, cy);
+        this.tweens.add({
+          targets: bestText, scale: 1.18,
+          duration: 180, yoyo: true, repeat: 2, ease: 'Sine.InOut',
+        });
+      }
+    });
+
+    // 5 — restart button slides up
+    const btn = this.add.text(cx, cy + 80, '▶  NEU STARTEN', {
+      fontFamily: '"Fredoka", sans-serif',
       fontSize: '18px', color: '#00ff88',
       backgroundColor: '#003322',
       padding: { x: 18, y: 10 },
-    })
-      .setOrigin(0.5).setDepth(21)
-      .setInteractive({ useHandCursor: true })
-      .on('pointerdown', () => this.scene.restart());
+    }).setOrigin(0.5).setDepth(21).setAlpha(0);
+
+    this.time.delayedCall(1150, () => {
+      this.tweens.add({
+        targets: btn, alpha: 1, y: cy + 55,
+        duration: 320, ease: 'Back.Out',
+      });
+      btn.setInteractive({ useHandCursor: true })
+         .on('pointerup', () => this.scene.restart());
+    });
+  }
+
+  private confettiBurst(cx: number, cy: number) {
+    const colors = [0xFF4455, 0x00FF88, 0xFFDD00, 0x00AAFF, 0xFF6B35, 0x9933FF];
+    colors.forEach((color, i) => {
+      const em = this.add.particles(0, 0, 'ptcl', {
+        speed:    { min: 100, max: 300 },
+        angle:    { min: -130, max: -50 },
+        scale:    { start: 0.7, end: 0 },
+        alpha:    { start: 1, end: 0 },
+        lifespan: 1100,
+        gravityY: 280,
+        tint:     color,
+        emitting: false,
+      }).setDepth(22);
+      this.time.delayedCall(i * 45, () => em.explode(10, cx, cy));
+      this.time.delayedCall(1400, () => em.destroy());
+    });
   }
 
   // ─────────────────────────────────────────────
