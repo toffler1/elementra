@@ -25,31 +25,24 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private buildTitle() {
-    this.add.text(GAME_WIDTH / 2, 155, 'ELEMENTRA', {
-      fontSize: '52px',
-      color: '#ffffff',
-      fontStyle: 'bold',
-      stroke: '#3333cc',
-      strokeThickness: 4,
-    }).setOrigin(0.5).setAlpha(0);
-
-    // fade + slide in
     const title = this.add.text(GAME_WIDTH / 2, 175, 'ELEMENTRA', {
-      fontSize: '52px',
-      color: '#ffffff',
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '58px',
       fontStyle: 'bold',
+      color: '#ffffff',
       stroke: '#3333cc',
-      strokeThickness: 4,
+      strokeThickness: 5,
     }).setOrigin(0.5).setAlpha(0);
 
     this.tweens.add({
-      targets: title, alpha: 1, y: 165,
+      targets: title, alpha: 1, y: 162,
       duration: 700, ease: 'Back.out',
     });
 
     this.add.text(GAME_WIDTH / 2, 222, 'Gleiche Elemente verschmelzen!', {
-      fontSize: '15px', color: '#7777aa',
-    }).setOrigin(0.5).setAlpha(0.85);
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '16px', color: '#7777aa',
+    }).setOrigin(0.5).setAlpha(0.9);
   }
 
   private buildElementRow() {

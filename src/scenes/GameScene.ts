@@ -98,12 +98,14 @@ export class GameScene extends Phaser.Scene {
 
   private buildUI() {
     this.add.text(16, 10, 'SCORE', { fontSize: '11px', color: '#556' }).setDepth(5);
-    this.scoreText = this.add.text(16, 24, '0', {
-      fontSize: '28px', color: '#fff', fontStyle: 'bold',
+    this.scoreText = this.add.text(16, 22, '0', {
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '30px', color: '#fff', fontStyle: 'bold',
     }).setDepth(5);
     this.add.text(16, 58, 'BEST', { fontSize: '11px', color: '#445' }).setDepth(5);
-    this.bestText = this.add.text(16, 72, this.bestScore > 0 ? this.bestScore.toString() : '-', {
-      fontSize: '18px', color: '#888', fontStyle: 'bold',
+    this.bestText = this.add.text(16, 71, this.bestScore > 0 ? this.bestScore.toString() : '-', {
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '19px', color: '#888', fontStyle: 'bold',
     }).setDepth(5);
 
     // mute toggle — centered in header
@@ -240,12 +242,16 @@ export class GameScene extends Phaser.Scene {
     this.particles.burst(mx, my, level);
     this.flashMerge(mx, my, level);
     this.showMergeLabel(mx, my, nxt);
-    if (level >= 5) {
-      this.cameras.main.shake(
-        60 + (level - 5) * 12,
-        0.004 + (level - 5) * 0.002,
-      );
-    }
+
+    // screenshake on ALL levels — scales with level
+    this.cameras.main.shake(55 + level * 8, 0.002 + level * 0.0008);
+
+    // hit-stop — brief freeze frame (50ms L1 → 100ms L10)
+    this.time.timeScale = 0;
+    setTimeout(() => {
+      if (!this.scene.isActive('GameScene')) return;
+      this.time.timeScale = 1;
+    }, 50 + level * 5);
 
     // Alpha-only tween — scale tweens change the Matter body size and cause overlap explosions
     this.tweens.add({
