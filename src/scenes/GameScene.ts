@@ -374,7 +374,7 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(21).setAlpha(0);
 
     this.time.delayedCall(920, () => {
-      bestText.setText(isNewBest ? '🏆 Neuer Rekord!' : `Bestleistung: ${this.bestScore}`);
+      bestText.setText(isNewBest ? '🏆 New Record!' : `Best: ${this.bestScore}`);
       this.tweens.add({ targets: bestText, alpha: 1, duration: 260 });
       if (isNewBest) {
         this.confettiBurst(cx, cy);
@@ -386,7 +386,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     // 5 — restart button slides up
-    const btn = this.add.text(cx, cy + 80, '▶  NEU STARTEN', {
+    const btn = this.add.text(cx, cy + 80, '▶  PLAY AGAIN', {
       fontFamily: '"Fredoka", sans-serif',
       fontSize: '18px', color: '#00ff88',
       backgroundColor: '#003322',

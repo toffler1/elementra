@@ -39,7 +39,7 @@ export class MenuScene extends Phaser.Scene {
       duration: 700, ease: 'Back.out',
     });
 
-    this.add.text(GAME_WIDTH / 2, 222, 'Gleiche Elemente verschmelzen!', {
+    this.add.text(GAME_WIDTH / 2, 222, 'Merge identical elements!', {
       fontFamily: '"Fredoka", sans-serif',
       fontSize: '16px', color: '#7777aa',
     }).setOrigin(0.5).setAlpha(0.9);
@@ -75,7 +75,7 @@ export class MenuScene extends Phaser.Scene {
   }
 
   private buildPlayButton() {
-    const btn = this.add.text(GAME_WIDTH / 2, 415, '▶  SPIELEN', {
+    const btn = this.add.text(GAME_WIDTH / 2, 415, '▶  PLAY', {
       fontSize: '26px',
       color: '#00ff88',
       backgroundColor: '#003322',
@@ -98,7 +98,7 @@ export class MenuScene extends Phaser.Scene {
   private buildBestScore() {
     const best = parseInt(localStorage.getItem('elementra_best') ?? '0', 10);
     if (best <= 0) return;
-    this.add.text(GAME_WIDTH / 2, 490, `🏆  Bestleistung: ${best}`, {
+    this.add.text(GAME_WIDTH / 2, 490, `🏆  Best: ${best}`, {
       fontSize: '15px', color: '#665500',
     }).setOrigin(0.5);
   }
