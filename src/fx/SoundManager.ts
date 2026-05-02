@@ -1,6 +1,16 @@
 export class SoundManager {
-  private ctx: AudioContext | null = null;
-  private master: GainNode | null  = null;
+  private ctx:    AudioContext | null = null;
+  private master: GainNode | null     = null;
+  private muted   = localStorage.getItem('elementra_muted') === '1';
+
+  isMuted() { return this.muted; }
+
+  toggleMute(): boolean {
+    this.muted = !this.muted;
+    localStorage.setItem('elementra_muted', this.muted ? '1' : '0');
+    if (this.master) this.master.gain.value = this.muted ? 0 : 0.45;
+    return this.muted;
+  }
 
   resume() {
     if (this.ctx?.state === 'suspended') this.ctx.resume();
@@ -10,7 +20,7 @@ export class SoundManager {
     if (!this.ctx) {
       this.ctx    = new AudioContext();
       this.master = this.ctx.createGain();
-      this.master.gain.value = 0.45;
+      this.master.gain.value = this.muted ? 0 : 0.45;
       this.master.connect(this.ctx.destination);
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();

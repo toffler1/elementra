@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { GAME_WIDTH, GAME_HEIGHT } from './config';
 
@@ -14,7 +15,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [GameScene],
+  scene: [MenuScene, GameScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

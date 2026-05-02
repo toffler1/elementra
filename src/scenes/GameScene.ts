@@ -3,8 +3,9 @@ import {
   ELEMENTS, GAME_WIDTH, GAME_HEIGHT,
   WALL_T, CONTAINER_TOP, DROP_Y, DANGER_Y, MAX_DROP_LEVEL,
 } from '../config';
-import { ParticleManager } from '../fx/ParticleManager';
-import { SoundManager }    from '../fx/SoundManager';
+import { ParticleManager }      from '../fx/ParticleManager';
+import { SoundManager }         from '../fx/SoundManager';
+import { buildElementTextures } from '../utils/buildTextures';
 
 export class GameScene extends Phaser.Scene {
 
@@ -66,40 +67,7 @@ export class GameScene extends Phaser.Scene {
   // ─────────────────────────────────────────────
 
   private buildTextures() {
-    ELEMENTS.forEach(el => {
-      const key = `el_${el.level}`;
-      if (this.textures.exists(key)) return;
-
-      const r      = el.radius;
-      const size   = r * 2;
-      const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      const ctx    = canvas.getContext('2d')!;
-
-      // radial gradient — offset focal point simulates top-left light source
-      const grad = ctx.createRadialGradient(r * 0.55, r * 0.38, 0, r, r, r);
-      grad.addColorStop(0,   cssColor(el.color, 0.60,  0));
-      grad.addColorStop(0.6, cssColor(el.color, 0,     0));
-      grad.addColorStop(1,   cssColor(el.color, 0,     0.50));
-      ctx.beginPath();
-      ctx.arc(r, r, r, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // dark rim
-      ctx.strokeStyle = 'rgba(0,0,0,0.30)';
-      ctx.lineWidth   = 2;
-      ctx.stroke();
-
-      // emoji — font stack covers Win/Mac/Android
-      const fontSize = Math.round(r * 1.05);
-      ctx.font          = `${fontSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif`;
-      ctx.textAlign     = 'center';
-      ctx.textBaseline  = 'middle';
-      ctx.fillText(el.emoji, r, r + r * 0.04);
-
-      this.textures.addCanvas(key, canvas);
-    });
+    buildElementTextures(this);
   }
 
   private buildBackground() {
@@ -137,6 +105,14 @@ export class GameScene extends Phaser.Scene {
     this.bestText = this.add.text(16, 72, this.bestScore > 0 ? this.bestScore.toString() : '-', {
       fontSize: '18px', color: '#888', fontStyle: 'bold',
     }).setDepth(5);
+
+    // mute toggle — centered in header
+    const muteBtn = this.add.text(GAME_WIDTH / 2, 10, this.sfx.isMuted() ? '🔇' : '🔊', {
+      fontSize: '18px',
+    }).setOrigin(0.5, 0).setDepth(5).setInteractive({ useHandCursor: true });
+    muteBtn.on('pointerdown', () => {
+      muteBtn.setText(this.sfx.toggleMute() ? '🔇' : '🔊');
+    });
 
     this.add.text(GAME_WIDTH - 62, 10, 'NEXT', { fontSize: '11px', color: '#556' }).setDepth(5);
     // placeholder, replaced in prepareNext()
@@ -396,13 +372,3 @@ export class GameScene extends Phaser.Scene {
   }
 }
 
-// Returns a CSS rgb() string with the hex color lightened (+lighten) or darkened (+darken).
-function cssColor(hex: number, lighten: number, darken: number): string {
-  let r = (hex >> 16) & 0xff;
-  let g = (hex >>  8) & 0xff;
-  let b =  hex        & 0xff;
-  r = Math.round(r + (255 - r) * lighten) * (1 - darken) | 0;
-  g = Math.round(g + (255 - g) * lighten) * (1 - darken) | 0;
-  b = Math.round(b + (255 - b) * lighten) * (1 - darken) | 0;
-  return `rgb(${r},${g},${b})`;
-}
