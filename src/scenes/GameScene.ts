@@ -145,7 +145,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private setupInput() {
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+    // pointerup = finger lifted / mouse released — lets mobile users drag to aim first
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       if (this.gameOver || !this.canDrop) return;
       this.executeDrop(p.x);
     });

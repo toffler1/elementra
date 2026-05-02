@@ -91,7 +91,7 @@ export class MenuScene extends Phaser.Scene {
 
     btn.on('pointerover',  () => btn.setStyle({ color: '#ffffff', backgroundColor: '#005533' }));
     btn.on('pointerout',   () => btn.setStyle({ color: '#00ff88', backgroundColor: '#003322' }));
-    btn.on('pointerdown',  () => {
+    btn.on('pointerup', () => {
       this.cameras.main.fadeOut(200, 0, 0, 0);
       this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('GameScene'));
     });
