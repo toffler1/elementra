@@ -28,14 +28,6 @@ export async function buildElementTextures(scene: Phaser.Scene): Promise<void> {
     ctx.lineWidth   = 2;
     ctx.stroke();
 
-    const fontSize = Math.round(r * 1.05);
-    // Use sans-serif only — lets the browser's built-in emoji substitution
-    // handle rendering, which works reliably on Android and iOS
-    ctx.font         = `${fontSize}px "Apple Color Emoji","Noto Color Emoji","Segoe UI Emoji",sans-serif`;
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(el.emoji, r, r + r * 0.04);
-
     scene.textures.addCanvas(key, canvas);
   });
 }

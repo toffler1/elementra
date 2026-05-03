@@ -29,7 +29,8 @@ export class SoundManager {
 
   private context(): AudioContext {
     if (!this.ctx) {
-      this.ctx    = new AudioContext();
+      const AC    = window.AudioContext ?? (window as any).webkitAudioContext;
+      this.ctx    = new AC();
       this.master = this.ctx.createGain();
       this.master.gain.value = this.muted ? 0 : 0.45;
       this.master.connect(this.ctx.destination);

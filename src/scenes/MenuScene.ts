@@ -54,12 +54,14 @@ export class MenuScene extends Phaser.Scene {
     const startX = (GAME_WIDTH - total) / 2 + gap / 2;
 
     ELEMENTS.forEach((el, i) => {
-      const img = this.add.image(startX + i * gap, y, `el_${el.level}`)
-        .setDisplaySize(size, size);
+      const x   = startX + i * gap;
+      const img = this.add.image(x, y, `el_${el.level}`).setDisplaySize(size, size);
+      const txt = this.add.text(x, y, el.emoji, {
+        fontSize: `${Math.round(size * 0.52)}px`,
+      }).setOrigin(0.5);
 
-      // staggered floating animation
       this.tweens.add({
-        targets:  img,
+        targets:  [img, txt],
         y:        y - 7,
         duration: 700 + i * 60,
         yoyo:     true,

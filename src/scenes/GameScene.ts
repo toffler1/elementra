@@ -29,7 +29,8 @@ export class GameScene extends Phaser.Scene {
   private nextPreview!:  Phaser.GameObjects.Image;
   private aimIndicator!: Phaser.GameObjects.Image;
   private dropGuide!:    Phaser.GameObjects.Graphics;
-  private activeEls: Phaser.Physics.Matter.Image[] = [];
+  private activeEls:    Phaser.Physics.Matter.Image[]           = [];
+  private elementTexts: Map<string, Phaser.GameObjects.Text>    = new Map();
 
   constructor() { super({ key: 'GameScene' }); }
 
@@ -38,9 +39,10 @@ export class GameScene extends Phaser.Scene {
   // ─────────────────────────────────────────────
 
   create() {
-    this.score     = 0;
-    this.activeEls = [];
-    this.gameOver  = false;
+    this.score        = 0;
+    this.activeEls    = [];
+    this.elementTexts = new Map();
+    this.gameOver     = false;
     this.canDrop   = true;
     this.bestScore = parseInt(localStorage.getItem('elementra_best') ?? '0', 10);
 
@@ -62,6 +64,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gameOver) return;
     this.updateAim();
     this.checkGameOver();
+    this.syncElementTexts();
   }
 
   // ─────────────────────────────────────────────
@@ -187,10 +190,25 @@ export class GameScene extends Phaser.Scene {
 
     img.setDepth(3);
     img.setData('level', level);
-    img.setData('uid',   `${Date.now()}_${Math.random()}`);
+    const uid = `${Date.now()}_${Math.random()}`;
+    img.setData('uid', uid);
+
+    // Emoji rendered as a Phaser Text so it works reliably on iOS/Brave
+    const fontSize = Math.round(el.radius * 1.05);
+    const txt = this.add.text(x, y, el.emoji, { fontSize: `${fontSize}px` })
+      .setOrigin(0.5).setDepth(4);
+    this.elementTexts.set(uid, txt);
 
     this.activeEls.push(img);
     return img;
+  }
+
+  private syncElementTexts() {
+    for (const el of this.activeEls) {
+      if (!el.active) continue;
+      const txt = this.elementTexts.get(el.getData('uid'));
+      if (txt) txt.setPosition(el.x, el.y);
+    }
   }
 
   // ─────────────────────────────────────────────
@@ -255,19 +273,27 @@ export class GameScene extends Phaser.Scene {
       this.time.timeScale = 1;
     }, 50 + level * 5);
 
+    const uidA = a.getData('uid') as string;
+    const uidB = b.getData('uid') as string;
+    const txtA = this.elementTexts.get(uidA);
+    const txtB = this.elementTexts.get(uidB);
+
     // Alpha-only tween — scale tweens change the Matter body size and cause overlap explosions
     this.tweens.add({
-      targets: [a, b],
+      targets: [a, b, txtA, txtB].filter(Boolean),
       alpha: 0,
       duration: 100,
       onComplete: () => {
+        txtA?.destroy(); this.elementTexts.delete(uidA);
+        txtB?.destroy(); this.elementTexts.delete(uidB);
         a.destroy();
         b.destroy();
         this.activeEls = this.activeEls.filter(e => e !== a && e !== b);
 
-        const newEl = this.spawnElement(mx, my, nxt);
+        const newEl  = this.spawnElement(mx, my, nxt);
+        const newTxt = this.elementTexts.get(newEl.getData('uid'));
         this.tweens.add({
-          targets: newEl,
+          targets: [newEl, newTxt].filter(Boolean),
           alpha: { from: 0, to: 1 },
           duration: 180,
         });
