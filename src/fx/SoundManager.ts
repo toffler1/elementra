@@ -12,6 +12,11 @@ export class SoundManager {
     return this.muted;
   }
 
+  // Force-mute without changing the user's saved preference (used during ads)
+  forceMute(muted: boolean): void {
+    if (this.master) this.master.gain.value = muted ? 0 : (this.muted ? 0 : 0.45);
+  }
+
   resume() {
     if (this.ctx?.state === 'suspended') this.ctx.resume();
   }

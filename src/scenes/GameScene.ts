@@ -6,6 +6,7 @@ import {
 import { ParticleManager }      from '../fx/ParticleManager';
 import { SoundManager }         from '../fx/SoundManager';
 import { buildElementTextures } from '../utils/buildTextures';
+import { gameplayStart, gameplayStop, requestMidgameAd } from '../ads/CrazySDK';
 
 export class GameScene extends Phaser.Scene {
 
@@ -54,6 +55,7 @@ export class GameScene extends Phaser.Scene {
     this.prepareNext();
     this.setupInput();
     this.setupCollisions();
+    gameplayStart();
   }
 
   update() {
@@ -316,6 +318,7 @@ export class GameScene extends Phaser.Scene {
     this.gameOver       = true;
     this.canDrop        = false;
     this.time.timeScale = 1; // reset any leftover hit-stop
+    gameplayStop();
     this.sfx.playGameOver();
     this.aimIndicator?.setVisible(false);
     this.dropGuide.clear();
@@ -399,7 +402,15 @@ export class GameScene extends Phaser.Scene {
         duration: 320, ease: 'Back.Out',
       });
       btn.setInteractive({ useHandCursor: true })
-         .on('pointerup', () => this.scene.restart());
+         .on('pointerup', () => {
+           btn.removeInteractive();
+           btn.setAlpha(0.5);
+           requestMidgameAd({
+             adStarted:  () => this.sfx.forceMute(true),
+             adFinished: () => { this.sfx.forceMute(false); this.scene.restart(); },
+             adError:    () => { this.sfx.forceMute(false); this.scene.restart(); },
+           });
+         });
     });
   }
 

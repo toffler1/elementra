@@ -2,6 +2,9 @@ import Phaser from 'phaser';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { GAME_WIDTH, GAME_HEIGHT } from './config';
+import { initCrazySDK } from './ads/CrazySDK';
+
+initCrazySDK(); // fire and forget — degrades silently off-platform
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
