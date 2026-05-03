@@ -68,8 +68,8 @@ export class GameScene extends Phaser.Scene {
   //  SETUP
   // ─────────────────────────────────────────────
 
-  private buildTextures() {
-    buildElementTextures(this);
+  private async buildTextures() {
+    await buildElementTextures(this);
   }
 
   private buildBackground() {

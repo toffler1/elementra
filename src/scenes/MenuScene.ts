@@ -5,8 +5,8 @@ import { buildElementTextures } from '../utils/buildTextures';
 export class MenuScene extends Phaser.Scene {
   constructor() { super({ key: 'MenuScene' }); }
 
-  create() {
-    buildElementTextures(this);
+  async create() {
+    await buildElementTextures(this);
 
     // background
     this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x1a1a2e);
@@ -41,8 +41,9 @@ export class MenuScene extends Phaser.Scene {
 
     this.add.text(GAME_WIDTH / 2, 222, 'Merge identical elements!', {
       fontFamily: '"Fredoka", sans-serif',
-      fontSize: '16px', color: '#7777aa',
-    }).setOrigin(0.5).setAlpha(0.9);
+      fontSize: '18px', color: '#aaaadd',
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5);
   }
 
   private buildElementRow() {
@@ -99,7 +100,9 @@ export class MenuScene extends Phaser.Scene {
     const best = parseInt(localStorage.getItem('elementra_best') ?? '0', 10);
     if (best <= 0) return;
     this.add.text(GAME_WIDTH / 2, 490, `🏆  Best: ${best}`, {
-      fontSize: '15px', color: '#665500',
+      fontFamily: '"Fredoka", sans-serif',
+      fontSize: '17px', color: '#ffcc44',
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5);
   }
 }

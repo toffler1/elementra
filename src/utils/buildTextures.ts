@@ -1,7 +1,10 @@
 import Phaser from 'phaser';
 import { ELEMENTS } from '../config';
 
-export function buildElementTextures(scene: Phaser.Scene) {
+export async function buildElementTextures(scene: Phaser.Scene): Promise<void> {
+  // Wait for fonts so emoji render correctly on Android/mobile
+  await document.fonts.ready;
+
   ELEMENTS.forEach(el => {
     const key = `el_${el.level}`;
     if (scene.textures.exists(key)) return;
@@ -26,7 +29,9 @@ export function buildElementTextures(scene: Phaser.Scene) {
     ctx.stroke();
 
     const fontSize = Math.round(r * 1.05);
-    ctx.font         = `${fontSize}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",serif`;
+    // Use sans-serif only — lets the browser's built-in emoji substitution
+    // handle rendering, which works reliably on Android and iOS
+    ctx.font         = `${fontSize}px sans-serif`;
     ctx.textAlign    = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(el.emoji, r, r + r * 0.04);
