@@ -3,8 +3,8 @@ import {
   ELEMENTS, GAME_WIDTH, GAME_HEIGHT,
   WALL_T, CONTAINER_TOP, DROP_Y, DANGER_Y, MAX_DROP_LEVEL,
 } from '../config';
-import { ParticleManager }      from '../fx/ParticleManager';
-import { SoundManager }         from '../fx/SoundManager';
+import { ParticleManager }             from '../fx/ParticleManager';
+import { SoundManager, getOrCreateSoundManager } from '../fx/SoundManager';
 import { buildElementTextures } from '../utils/buildTextures';
 import { gameplayStart, gameplayStop, requestMidgameAd } from '../ads/CrazySDK';
 
@@ -44,7 +44,7 @@ export class GameScene extends Phaser.Scene {
     this.canDrop   = true;
     this.bestScore = parseInt(localStorage.getItem('elementra_best') ?? '0', 10);
 
-    this.sfx       = new SoundManager();
+    this.sfx       = getOrCreateSoundManager();
     this.particles = new ParticleManager(this);
 
     this.buildTextures();

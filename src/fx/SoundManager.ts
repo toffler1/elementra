@@ -1,3 +1,9 @@
+let _instance: SoundManager | null = null;
+export function getOrCreateSoundManager(): SoundManager {
+  if (!_instance) _instance = new SoundManager();
+  return _instance;
+}
+
 export class SoundManager {
   private ctx:    AudioContext | null = null;
   private master: GainNode | null     = null;
