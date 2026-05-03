@@ -29,8 +29,10 @@ export class GameScene extends Phaser.Scene {
   private nextPreview!:  Phaser.GameObjects.Image;
   private aimIndicator!: Phaser.GameObjects.Image;
   private dropGuide!:    Phaser.GameObjects.Graphics;
-  private activeEls:    Phaser.Physics.Matter.Image[]           = [];
-  private elementTexts: Map<string, Phaser.GameObjects.Text>    = new Map();
+  private activeEls:       Phaser.Physics.Matter.Image[]         = [];
+  private elementTexts:    Map<string, Phaser.GameObjects.Text>  = new Map();
+  private nextPreviewText!: Phaser.GameObjects.Text;
+  private aimIndicatorText: Phaser.GameObjects.Text | null       = null;
 
   constructor() { super({ key: 'GameScene' }); }
 
@@ -122,8 +124,9 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.add.text(GAME_WIDTH - 62, 10, 'NEXT', { fontSize: '11px', color: '#556' }).setDepth(5);
-    // placeholder, replaced in prepareNext()
-    this.nextPreview = this.add.image(GAME_WIDTH - 42, 52, 'el_1').setDepth(5);
+    this.nextPreview     = this.add.image(GAME_WIDTH - 42, 52, 'el_1').setDepth(5);
+    this.nextPreviewText = this.add.text(GAME_WIDTH - 42, 52, '', { fontSize: '16px' })
+      .setOrigin(0.5).setDepth(6);
   }
 
   // ─────────────────────────────────────────────
@@ -140,15 +143,22 @@ export class GameScene extends Phaser.Scene {
     this.nextPreview.setTexture(`el_${this.nextLevel}`);
     const ps = Math.min(nextEl.radius * 1.3, 48);
     this.nextPreview.setDisplaySize(ps, ps);
+    this.nextPreviewText
+      .setText(nextEl.emoji)
+      .setFontSize(`${Math.round(ps * 0.52)}px`);
 
     // create aim indicator for current
     this.aimIndicator?.destroy();
+    this.aimIndicatorText?.destroy();
     const curEl = ELEMENTS[this.currentLevel - 1];
     this.aimIndicator = this.add
       .image(GAME_WIDTH / 2, DROP_Y, `el_${this.currentLevel}`)
-      .setAlpha(0.85)
-      .setDepth(4);
+      .setAlpha(0.85).setDepth(4);
     this.aimIndicator.setDisplaySize(curEl.radius * 2, curEl.radius * 2);
+    this.aimIndicatorText = this.add
+      .text(GAME_WIDTH / 2, DROP_Y, curEl.emoji, {
+        fontSize: `${Math.round(curEl.radius * 1.05)}px`,
+      }).setOrigin(0.5).setAlpha(0.85).setDepth(5);
   }
 
   private setupInput() {
@@ -170,6 +180,7 @@ export class GameScene extends Phaser.Scene {
 
     this.canDrop = false;
     this.aimIndicator.setVisible(false);
+    this.aimIndicatorText?.setVisible(false);
 
     this.time.delayedCall(380, () => {
       if (!this.gameOver) {
@@ -207,7 +218,7 @@ export class GameScene extends Phaser.Scene {
     for (const el of this.activeEls) {
       if (!el.active) continue;
       const txt = this.elementTexts.get(el.getData('uid'));
-      if (txt) txt.setPosition(el.x, el.y);
+      if (txt) txt.setPosition(el.x, el.y).setRotation(el.rotation);
     }
   }
 
@@ -314,6 +325,7 @@ export class GameScene extends Phaser.Scene {
     const px = this.input.activePointer.x;
     const x  = Phaser.Math.Clamp(px, WALL_T + el.radius, GAME_WIDTH - WALL_T - el.radius);
     this.aimIndicator.x = x;
+    if (this.aimIndicatorText) this.aimIndicatorText.x = x;
 
     this.dropGuide.clear();
     this.dropGuide.lineStyle(1, 0xffffff, 0.2);
@@ -347,6 +359,7 @@ export class GameScene extends Phaser.Scene {
     gameplayStop();
     this.sfx.playGameOver();
     this.aimIndicator?.setVisible(false);
+    this.aimIndicatorText?.setVisible(false);
     this.dropGuide.clear();
 
     const cx        = GAME_WIDTH / 2;

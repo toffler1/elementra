@@ -24,7 +24,9 @@ export class SoundManager {
   }
 
   resume() {
-    if (this.ctx?.state === 'suspended') this.ctx.resume();
+    // Creates AudioContext if needed — must be called within a native DOM user gesture
+    // so iOS allows it. Phaser's rAF-based events don't qualify on iOS.
+    this.context();
   }
 
   private context(): AudioContext {
