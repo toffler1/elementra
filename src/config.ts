@@ -17,7 +17,7 @@ export const ELEMENTS: ElementConfig[] = [
   { level: 7,  name: 'Ice',       emoji: '❄️', color: 0xCCEEFF, radius: 66, points: 640  },
   { level: 8,  name: 'Lava',      emoji: '🌋', color: 0xFF4400, radius: 74, points: 1280 },
   { level: 9,  name: 'Storm',     emoji: '🌪️', color: 0xAA00EE, radius: 82, points: 2560 },
-  { level: 10, name: 'Cosmos',    emoji: '🌌', color: 0x9933FF, radius: 90, points: 5120 },
+  { level: 10, name: 'Cosmos',    emoji: '🪐', color: 0x9933FF, radius: 90, points: 5120 },
 ];
 
 export const GAME_WIDTH     = 400;
