@@ -115,12 +115,28 @@ export class GameScene extends Phaser.Scene {
       fontSize: '19px', color: '#888', fontStyle: 'bold',
     }).setDepth(5);
 
-    // mute toggle — centered in header
-    const muteBtn = this.add.text(GAME_WIDTH / 2, 10, this.sfx.isMuted() ? '🔇' : '🔊', {
-      fontSize: '18px',
-    }).setOrigin(0.5, 0).setDepth(5).setInteractive({ useHandCursor: true });
-    muteBtn.on('pointerdown', () => {
+    // mute toggle — pill button centered in header
+    const mx = GAME_WIDTH / 2, my = 22;
+    const muteBg = this.add.graphics().setDepth(5);
+    const drawMuteBg = (hover = false) => {
+      muteBg.clear();
+      muteBg.fillStyle(hover ? 0x3a4f66 : 0x1e2d3d, 0.90);
+      muteBg.fillRoundedRect(mx - 17, my - 14, 34, 28, 8);
+      muteBg.lineStyle(1, 0x445566, 0.8);
+      muteBg.strokeRoundedRect(mx - 17, my - 14, 34, 28, 8);
+    };
+    drawMuteBg();
+
+    const muteBtn = this.add.text(mx, my, this.sfx.isMuted() ? '🔇' : '🔊', {
+      fontSize: '16px', padding: { x: 4, y: 3 },
+    }).setOrigin(0.5).setDepth(6).setInteractive({ useHandCursor: true });
+
+    muteBtn.on('pointerover', () => drawMuteBg(true));
+    muteBtn.on('pointerout',  () => drawMuteBg(false));
+    // pointerup + stopPropagation prevents the global pointerup from dropping an element
+    muteBtn.on('pointerup', (_p: any, _lx: any, _ly: any, event: any) => {
       muteBtn.setText(this.sfx.toggleMute() ? '🔇' : '🔊');
+      event.stopPropagation();
     });
 
     this.add.text(GAME_WIDTH - 62, 10, 'NEXT', { fontSize: '11px', color: '#556' }).setDepth(5);
