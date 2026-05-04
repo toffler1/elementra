@@ -7,15 +7,11 @@ import { getOrCreateSoundManager } from './fx/SoundManager';
 
 initCrazySDK(); // fire and forget — degrades silently off-platform
 
-// iOS Safari blocks Web Audio until a direct DOM user gesture.
-// Phaser's input runs via rAF and doesn't count — so we unlock here.
-const unlockAudio = () => {
-  getOrCreateSoundManager().resume();
-  document.removeEventListener('touchstart', unlockAudio);
-  document.removeEventListener('pointerdown', unlockAudio);
-};
-document.addEventListener('touchstart', unlockAudio, { passive: true });
-document.addEventListener('pointerdown', unlockAudio, { passive: true });
+// iOS suspends Web Audio unless a silent buffer is played within each
+// user-gesture. Keep the listener persistent — iOS can re-suspend after idle.
+const keepAudioAlive = () => getOrCreateSoundManager().playSilent();
+document.addEventListener('touchstart', keepAudioAlive, { passive: true });
+document.addEventListener('pointerdown', keepAudioAlive, { passive: true });
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,

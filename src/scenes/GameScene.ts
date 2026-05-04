@@ -157,7 +157,8 @@ export class GameScene extends Phaser.Scene {
     this.aimIndicator.setDisplaySize(curEl.radius * 2, curEl.radius * 2);
     this.aimIndicatorText = this.add
       .text(GAME_WIDTH / 2, DROP_Y, curEl.emoji, {
-        fontSize: `${Math.round(curEl.radius * 1.05)}px`,
+        fontSize: `${Math.round(curEl.radius * 0.9)}px`,
+        padding:  { x: 2, y: 4 },
       }).setOrigin(0.5).setAlpha(0.85).setDepth(5);
   }
 
@@ -205,9 +206,12 @@ export class GameScene extends Phaser.Scene {
     img.setData('uid', uid);
 
     // Emoji rendered as a Phaser Text so it works reliably on iOS/Brave
-    const fontSize = Math.round(el.radius * 1.05);
-    const txt = this.add.text(x, y, el.emoji, { fontSize: `${fontSize}px` })
-      .setOrigin(0.5).setDepth(4);
+    // padding prevents glyph clipping; 0.9× keeps emoji inside the circle
+    const fontSize = Math.round(el.radius * 0.9);
+    const txt = this.add.text(x, y, el.emoji, {
+      fontSize: `${fontSize}px`,
+      padding:  { x: 2, y: 4 },
+    }).setOrigin(0.5).setDepth(4);
     this.elementTexts.set(uid, txt);
 
     this.activeEls.push(img);

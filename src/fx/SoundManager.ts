@@ -24,9 +24,20 @@ export class SoundManager {
   }
 
   resume() {
-    // Creates AudioContext if needed — must be called within a native DOM user gesture
-    // so iOS allows it. Phaser's rAF-based events don't qualify on iOS.
     this.context();
+  }
+
+  // Play a silent buffer — the only reliable way to unlock iOS Web Audio.
+  // Must be called within a native DOM user-gesture handler.
+  playSilent(): void {
+    try {
+      const ctx = this.context();
+      const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.master!);
+      src.start(0);
+    } catch {}
   }
 
   private context(): AudioContext {
