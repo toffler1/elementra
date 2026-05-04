@@ -125,8 +125,9 @@ export class GameScene extends Phaser.Scene {
 
     this.add.text(GAME_WIDTH - 62, 10, 'NEXT', { fontSize: '11px', color: '#556' }).setDepth(5);
     this.nextPreview     = this.add.image(GAME_WIDTH - 42, 52, 'el_1').setDepth(5);
-    this.nextPreviewText = this.add.text(GAME_WIDTH - 42, 52, '', { fontSize: '16px' })
-      .setOrigin(0.5).setDepth(6);
+    this.nextPreviewText = this.add.text(GAME_WIDTH - 42, 52, '', {
+      fontSize: '16px', padding: { x: 6, y: 10 },
+    }).setOrigin(0.5).setDepth(6);
   }
 
   // ─────────────────────────────────────────────
@@ -158,7 +159,7 @@ export class GameScene extends Phaser.Scene {
     this.aimIndicatorText = this.add
       .text(GAME_WIDTH / 2, DROP_Y, curEl.emoji, {
         fontSize: `${Math.round(curEl.radius * 0.9)}px`,
-        padding:  { x: 2, y: 4 },
+        padding:  { x: 6, y: 10 },
       }).setOrigin(0.5).setAlpha(0.85).setDepth(5);
   }
 
@@ -206,11 +207,10 @@ export class GameScene extends Phaser.Scene {
     img.setData('uid', uid);
 
     // Emoji rendered as a Phaser Text so it works reliably on iOS/Brave
-    // padding prevents glyph clipping; 0.9× keeps emoji inside the circle
     const fontSize = Math.round(el.radius * 0.9);
     const txt = this.add.text(x, y, el.emoji, {
       fontSize: `${fontSize}px`,
-      padding:  { x: 2, y: 4 },
+      padding:  { x: 6, y: 10 },
     }).setOrigin(0.5).setDepth(4);
     this.elementTexts.set(uid, txt);
 
