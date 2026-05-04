@@ -27,26 +27,19 @@ export class SoundManager {
     this.context();
   }
 
-  // Unlock iOS Web Audio. Must be called within a native DOM user-gesture.
-  // ctx.resume() is async — we must await it before starting the buffer,
-  // otherwise the context is still suspended when start(0) is called.
+  // Unlock iOS Web Audio. MUST run synchronously inside a native DOM
+  // user-gesture handler — Promise callbacks lose the gesture context on
+  // iOS, so resume() and start(0) are both called inline. The buffer is
+  // queued by the AudioContext and plays once the resume promise settles.
   playSilent(): void {
     try {
       const ctx = this.context();
-      const play = () => {
-        try {
-          const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          src.connect(this.master!);
-          src.start(0);
-        } catch {}
-      };
-      if (ctx.state === 'running') {
-        play();
-      } else {
-        ctx.resume().then(play).catch(() => {});
-      }
+      if (ctx.state !== 'running') ctx.resume().catch(() => {});
+      const buf = ctx.createBuffer(1, 1, 22050);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(this.master!);
+      src.start(0);
     } catch {}
   }
 
