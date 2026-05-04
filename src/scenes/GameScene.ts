@@ -142,7 +142,7 @@ export class GameScene extends Phaser.Scene {
     this.add.text(GAME_WIDTH - 62, 10, 'NEXT', { fontSize: '11px', color: '#556' }).setDepth(5);
     this.nextPreview     = this.add.image(GAME_WIDTH - 42, 52, 'el_1').setDepth(5);
     this.nextPreviewText = this.add.text(GAME_WIDTH - 42, 52, '', {
-      fontSize: '16px', padding: { x: 6, y: 10 },
+      fontSize: '16px', padding: { x: 6, y: 16 },
     }).setOrigin(0.5).setDepth(6);
   }
 
@@ -175,7 +175,7 @@ export class GameScene extends Phaser.Scene {
     this.aimIndicatorText = this.add
       .text(GAME_WIDTH / 2, DROP_Y, curEl.emoji, {
         fontSize: `${Math.round(curEl.radius * 0.9)}px`,
-        padding:  { x: 6, y: 10 },
+        padding:  { x: 6, y: 16 },
       }).setOrigin(0.5).setAlpha(0.85).setDepth(5);
   }
 
@@ -226,7 +226,7 @@ export class GameScene extends Phaser.Scene {
     const fontSize = Math.round(el.radius * 0.9);
     const txt = this.add.text(x, y, el.emoji, {
       fontSize: `${fontSize}px`,
-      padding:  { x: 6, y: 10 },
+      padding:  { x: 6, y: 16 },
     }).setOrigin(0.5).setDepth(4);
     this.elementTexts.set(uid, txt);
 
@@ -447,29 +447,56 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // 5 — restart button slides up
-    const btn = this.add.text(cx, cy + 80, '▶  PLAY AGAIN', {
+    // 5 — restart button slides up (3D style matching the menu PLAY button)
+    const bw = 172, bh = 48, br = 14;
+    const btnContainer = this.add.container(cx, cy + 80).setDepth(21).setAlpha(0);
+
+    const btnShadow = this.add.graphics();
+    btnShadow.fillStyle(0x000000, 0.35);
+    btnShadow.fillRoundedRect(-bw/2 + 3, -bh/2 + 6, bw, bh, br);
+
+    const btnEdge = this.add.graphics();
+    btnEdge.fillStyle(0x005522, 1);
+    btnEdge.fillRoundedRect(-bw/2, -bh/2 + 4, bw, bh, br);
+
+    const btnBody = this.add.graphics();
+    const drawBtnBody = (color: number, dy = 0) => {
+      btnBody.clear();
+      btnBody.fillStyle(color, 1);
+      btnBody.fillRoundedRect(-bw/2, -bh/2 + dy, bw, bh, br);
+    };
+    drawBtnBody(0x00cc66);
+
+    const btnShine = this.add.graphics();
+    btnShine.fillStyle(0xffffff, 0.20);
+    btnShine.fillRoundedRect(-bw/2 + 4, -bh/2 + 4, bw - 8, bh * 0.42,
+      { tl: br - 4, tr: br - 4, bl: 4, br: 4 });
+
+    const btnLabel = this.add.text(0, 0, '▶  PLAY AGAIN', {
       fontFamily: '"Fredoka", sans-serif',
-      fontSize: '18px', color: '#00ff88',
-      backgroundColor: '#003322',
-      padding: { x: 18, y: 10 },
-    }).setOrigin(0.5).setDepth(21).setAlpha(0);
+      fontSize: '18px', color: '#ffffff', fontStyle: 'bold',
+      stroke: '#005533', strokeThickness: 2,
+    }).setOrigin(0.5);
+
+    const btnHit = this.add.rectangle(0, 0, bw, bh);
+    btnContainer.add([btnShadow, btnEdge, btnBody, btnShine, btnLabel, btnHit]);
 
     this.time.delayedCall(1150, () => {
       this.tweens.add({
-        targets: btn, alpha: 1, y: cy + 55,
+        targets: btnContainer, alpha: 1, y: cy + 55,
         duration: 320, ease: 'Back.Out',
       });
-      btn.setInteractive({ useHandCursor: true })
-         .on('pointerup', () => {
-           btn.removeInteractive();
-           btn.setAlpha(0.5);
-           requestMidgameAd({
-             adStarted:  () => this.sfx.forceMute(true),
-             adFinished: () => { this.sfx.forceMute(false); this.scene.restart(); },
-             adError:    () => { this.sfx.forceMute(false); this.scene.restart(); },
-           });
-         });
+      btnHit.setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => { drawBtnBody(0x00aa55, 3); btnShine.setAlpha(0.08); })
+        .on('pointerup', () => {
+          btnHit.removeInteractive();
+          btnContainer.setAlpha(0.5);
+          requestMidgameAd({
+            adStarted:  () => this.sfx.forceMute(true),
+            adFinished: () => { this.sfx.forceMute(false); this.scene.restart(); },
+            adError:    () => { this.sfx.forceMute(false); this.scene.restart(); },
+          });
+        });
     });
   }
 

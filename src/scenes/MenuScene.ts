@@ -58,7 +58,7 @@ export class MenuScene extends Phaser.Scene {
       const img = this.add.image(x, y, `el_${el.level}`).setDisplaySize(size, size);
       const txt = this.add.text(x, y, el.emoji, {
         fontSize: `${Math.round(size * 0.52)}px`,
-        padding:  { x: 6, y: 10 },
+        padding:  { x: 6, y: 16 },
       }).setOrigin(0.5);
 
       this.tweens.add({
