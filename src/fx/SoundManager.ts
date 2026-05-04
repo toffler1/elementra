@@ -27,16 +27,26 @@ export class SoundManager {
     this.context();
   }
 
-  // Play a silent buffer — the only reliable way to unlock iOS Web Audio.
-  // Must be called within a native DOM user-gesture handler.
+  // Unlock iOS Web Audio. Must be called within a native DOM user-gesture.
+  // ctx.resume() is async — we must await it before starting the buffer,
+  // otherwise the context is still suspended when start(0) is called.
   playSilent(): void {
     try {
       const ctx = this.context();
-      const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(this.master!);
-      src.start(0);
+      const play = () => {
+        try {
+          const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(this.master!);
+          src.start(0);
+        } catch {}
+      };
+      if (ctx.state === 'running') {
+        play();
+      } else {
+        ctx.resume().then(play).catch(() => {});
+      }
     } catch {}
   }
 

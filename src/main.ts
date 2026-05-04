@@ -12,6 +12,7 @@ initCrazySDK(); // fire and forget — degrades silently off-platform
 const keepAudioAlive = () => getOrCreateSoundManager().playSilent();
 document.addEventListener('touchstart', keepAudioAlive, { passive: true });
 document.addEventListener('pointerdown', keepAudioAlive, { passive: true });
+document.addEventListener('click',       keepAudioAlive, { passive: true });
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
