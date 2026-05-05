@@ -18,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  backgroundColor: '#1a1a2e',
+  backgroundColor: '#07071a',
   physics: {
     default: 'matter',
     matter: {

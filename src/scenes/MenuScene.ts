@@ -8,13 +8,14 @@ export class MenuScene extends Phaser.Scene {
   async create() {
     await buildElementTextures(this);
 
-    // background
-    this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x1a1a2e);
+    // background gradient: deep space violet
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x07071a, 0x07071a, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-    // decorative gradient overlay at top
-    const grad = this.add.graphics();
-    grad.fillGradientStyle(0x0d0d2e, 0x0d0d2e, 0x1a1a2e, 0x1a1a2e, 1);
-    grad.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT / 2);
+    // stars
+    this.buildStarfield();
+
 
     this.buildTitle();
     this.buildElementRow();
@@ -22,6 +23,23 @@ export class MenuScene extends Phaser.Scene {
     this.buildBestScore();
 
     this.cameras.main.fadeIn(300, 0, 0, 0);
+  }
+
+  private buildStarfield() {
+    const g = this.add.graphics();
+    let seed = 137;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 0xffffffff;
+    };
+    for (let i = 0; i < 90; i++) {
+      const x = rand() * GAME_WIDTH;
+      const y = rand() * GAME_HEIGHT;
+      const r = rand() * 1.2 + 0.3;
+      const a = rand() * 0.5 + 0.4;
+      g.fillStyle(0xffffff, a);
+      g.fillCircle(x, y, r);
+    }
   }
 
   private buildTitle() {

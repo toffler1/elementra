@@ -5,7 +5,7 @@ import {
 } from '../config';
 import { ParticleManager }             from '../fx/ParticleManager';
 import { SoundManager, getOrCreateSoundManager } from '../fx/SoundManager';
-import { buildElementTextures } from '../utils/buildTextures';
+import { buildElementTextures, ORB_SCALE } from '../utils/buildTextures';
 import { gameplayStart, gameplayStop, requestMidgameAd } from '../ads/CrazySDK';
 
 export class GameScene extends Phaser.Scene {
@@ -78,10 +78,28 @@ export class GameScene extends Phaser.Scene {
   }
 
   private buildBackground() {
+    // deep space gradient
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x07071a, 0x07071a, 0x1a0a2e, 0x1a0a2e, 1);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    // stars (only in the top UI strip + sides, seed kept consistent)
+    const sg = this.add.graphics();
+    let seed = 137;
+    const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 0xffffffff; };
+    for (let i = 0; i < 90; i++) {
+      const x = rand() * GAME_WIDTH;
+      const y = rand() * GAME_HEIGHT;
+      const r = rand() * 1.2 + 0.3;
+      const a = rand() * 0.5 + 0.4;
+      sg.fillStyle(0xffffff, a);
+      sg.fillCircle(x, y, r);
+    }
+
     // container box
     const cw = GAME_WIDTH - WALL_T * 2;
     const ch = GAME_HEIGHT - CONTAINER_TOP - WALL_T;
-    this.add.rectangle(GAME_WIDTH / 2, CONTAINER_TOP + ch / 2, cw, ch, 0x16213e);
+    this.add.rectangle(GAME_WIDTH / 2, CONTAINER_TOP + ch / 2, cw, ch, 0x0d0d22);
 
     // danger line
     const g = this.add.graphics().setDepth(2);
@@ -158,7 +176,7 @@ export class GameScene extends Phaser.Scene {
     // update "NEXT" preview
     const nextEl = ELEMENTS[this.nextLevel - 1];
     this.nextPreview.setTexture(`el_${this.nextLevel}`);
-    const ps = Math.min(nextEl.radius * 1.3, 48);
+    const ps = Math.min(nextEl.radius * ORB_SCALE * 0.65, 48 * (ORB_SCALE / 2));
     this.nextPreview.setDisplaySize(ps, ps);
     this.nextPreviewText
       .setText(nextEl.emoji)
@@ -171,7 +189,7 @@ export class GameScene extends Phaser.Scene {
     this.aimIndicator = this.add
       .image(GAME_WIDTH / 2, DROP_Y, `el_${this.currentLevel}`)
       .setAlpha(0.85).setDepth(4);
-    this.aimIndicator.setDisplaySize(curEl.radius * 2, curEl.radius * 2);
+    this.aimIndicator.setDisplaySize(curEl.radius * ORB_SCALE, curEl.radius * ORB_SCALE);
     this.aimIndicatorText = this.add
       .text(GAME_WIDTH / 2, DROP_Y, curEl.emoji, {
         fontSize: `${Math.round(curEl.radius * 0.9)}px`,
