@@ -9,6 +9,11 @@ export class SoundManager {
   private master: GainNode | null     = null;
   private muted   = localStorage.getItem('elementra_muted') === '1';
 
+  // ── music state ──────────────────────────────────────────────────────
+  private musicGain:  GainNode | null      = null;
+  private musicOscs:  OscillatorNode[]     = [];
+  private musicTimer: ReturnType<typeof setTimeout> | null = null;
+
   isMuted() { return this.muted; }
 
   toggleMute(): boolean {
@@ -42,6 +47,126 @@ export class SoundManager {
       src.start(0);
     } catch {}
   }
+
+  // ── Music ────────────────────────────────────────────────────────────
+  // Ambient A-minor pad + gentle pentatonic arpeggio, loops indefinitely.
+  // Safe to call multiple times — second call is a no-op.
+
+  startMusic(): void {
+    if (this.musicGain) return;
+
+    const ctx = this.context();
+
+    // Dedicated music bus so we can fade in/out independently
+    const bus = ctx.createGain();
+    bus.gain.setValueAtTime(0, ctx.currentTime);
+    bus.gain.linearRampToValueAtTime(0.55, ctx.currentTime + 3.0);
+    bus.connect(this.master!);
+    this.musicGain = bus;
+
+    // Warm low-pass filter
+    const lpf = ctx.createBiquadFilter();
+    lpf.type = 'lowpass';
+    lpf.frequency.value = 900;
+    lpf.Q.value = 0.7;
+    lpf.connect(bus);
+
+    // Simple shimmer delay (poor-man's reverb)
+    const delay    = ctx.createDelay(0.7);
+    const feedback = ctx.createGain();
+    const delayOut = ctx.createGain();
+    delay.delayTime.value = 0.40;
+    feedback.gain.value   = 0.38;
+    delayOut.gain.value   = 0.28;
+    delay.connect(feedback);
+    feedback.connect(delay);
+    delay.connect(delayOut);
+    delayOut.connect(bus);
+
+    // ── Pad: A-minor chord (A2 E3 A3 C4), gentle sine waves ──────────
+    const padFreqs  = [110, 165, 220, 262];
+    const detunes   = [+4, -3, +2, -4];
+    padFreqs.forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type            = 'sine';
+      osc.frequency.value = freq;
+      osc.detune.value    = detunes[i];
+      gain.gain.value     = 0.09;
+      osc.connect(gain);
+      gain.connect(lpf);
+      osc.start();
+      this.musicOscs.push(osc);
+    });
+
+    // Slow vibrato LFO on pad root (A2) for movement
+    const lfo     = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.type            = 'sine';
+    lfo.frequency.value = 0.18;
+    lfoGain.gain.value  = 3;        // ±3 cents
+    lfo.connect(lfoGain);
+    lfoGain.connect(this.musicOscs[0].detune);
+    lfo.start();
+    this.musicOscs.push(lfo);
+
+    // ── Arpeggio: A-minor pentatonic up→down ─────────────────────────
+    // A3 C4 E4 G4 A4 G4 E4 C4
+    const arpFreqs = [220, 262, 330, 392, 440, 392, 330, 262];
+    const step     = 0.48;          // seconds per note
+    const loopMs   = arpFreqs.length * step * 1000;
+
+    const scheduleArp = () => {
+      if (!this.musicGain) return;
+      const t0 = ctx.currentTime + 0.02; // tiny lookahead
+      arpFreqs.forEach((freq, i) => {
+        const t   = t0 + i * step;
+        const osc = ctx.createOscillator();
+        const g   = ctx.createGain();
+        osc.type            = 'triangle';
+        osc.frequency.value = freq;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.055, t + 0.06);
+        g.gain.exponentialRampToValueAtTime(0.001, t + step * 0.80);
+        osc.connect(g);
+        g.connect(delay);        // arp goes through shimmer
+        osc.start(t);
+        osc.stop(t + step * 0.85);
+      });
+    };
+
+    scheduleArp();
+    const tick = () => {
+      if (!this.musicGain) return;
+      scheduleArp();
+      this.musicTimer = setTimeout(tick, loopMs);
+    };
+    this.musicTimer = setTimeout(tick, loopMs);
+  }
+
+  stopMusic(fadeSecs = 1.5): void {
+    if (!this.musicGain) return;
+
+    if (this.musicTimer !== null) {
+      clearTimeout(this.musicTimer);
+      this.musicTimer = null;
+    }
+
+    const ctx  = this.context();
+    const gain = this.musicGain;
+    gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + fadeSecs);
+
+    const oscs = this.musicOscs;
+    this.musicOscs = [];
+    this.musicGain = null;
+
+    oscs.forEach(osc => {
+      try { osc.stop(ctx.currentTime + fadeSecs + 0.05); } catch {}
+    });
+  }
+
+  // ── SFX ─────────────────────────────────────────────────────────────
 
   private context(): AudioContext {
     if (!this.ctx) {
@@ -92,7 +217,7 @@ export class SoundManager {
   playMerge(level: number) {
     const ctx  = this.context();
     const t0   = ctx.currentTime;
-    const freq = 210 + level * 52; // 262 (Funke) → 730 (Kosmos)
+    const freq = 210 + level * 52; // 262 (Spark) → 730 (Cosmos)
 
     // pitch-sweep pop
     const osc  = ctx.createOscillator();

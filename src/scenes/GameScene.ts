@@ -67,6 +67,7 @@ export class GameScene extends Phaser.Scene {
     this.setupInput();
     this.setupCollisions();
     gameplayStart();
+    this.sfx.startMusic();
 
     if (TutorialOverlay.shouldShow()) {
       this.tutorial = new TutorialOverlay(this);
@@ -410,6 +411,7 @@ export class GameScene extends Phaser.Scene {
     this.canDrop        = false;
     this.time.timeScale = 1; // reset any leftover hit-stop
     gameplayStop();
+    this.sfx.stopMusic();
     this.sfx.playGameOver();
     this.aimIndicator?.setVisible(false);
     this.aimIndicatorText?.setVisible(false);
