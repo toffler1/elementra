@@ -44,6 +44,7 @@ export class GameScene extends Phaser.Scene {
   private waterLevels = 0;
   private waterBody:  MatterJS.BodyType | null = null;
   private waterGfx!:  Phaser.GameObjects.Graphics;
+  private waterPhase  = 0;
 
   // rock hit debounce: key = `rockUid_elUid`, value = timestamp
   private rockHitTimes: Map<string, number> = new Map();
@@ -129,6 +130,7 @@ export class GameScene extends Phaser.Scene {
     this.updateAim();
     this.checkGameOver();
     this.syncOverlays();
+    this.updateWaterWave();
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -505,27 +507,31 @@ export class GameScene extends Phaser.Scene {
   private tryRockHit(rock: Phaser.Physics.Matter.Image, el: Phaser.Physics.Matter.Image) {
     if (!rock.active || !el.active) return;
     if (el.getData('merging')) return;
+    if (rock.getData('used')) return; // each rock hits once then vanishes
 
-    const rockUid = rock.getData('uid') as string;
-    const elUid   = el.getData('uid')   as string;
-    const pairKey = `${rockUid}_${elUid}`;
-    const now     = this.time.now;
-    const last    = this.rockHitTimes.get(pairKey) ?? 0;
-
-    if (now - last < this.HIT_COOLDOWN) return;
-    this.rockHitTimes.set(pairKey, now);
+    rock.setData('used', true);
 
     const hits = (el.getData('hits') as number ?? 0) + 1;
     el.setData('hits', hits);
 
     if (hits === 1) {
-      // First hit — crack visual
       el.setTint(0xCC7755);
       this.addCrackOverlay(el);
     } else {
-      // Second hit — shatter
       this.shatterElement(el);
     }
+
+    // Rock bounces away for ~350ms then fades out and is removed
+    this.time.delayedCall(350, () => {
+      if (!rock.active) return;
+      this.tweens.add({
+        targets: rock, alpha: 0, duration: 180,
+        onComplete: () => {
+          this.activeRocks = this.activeRocks.filter(r => r !== rock);
+          if (rock.active) rock.destroy();
+        },
+      });
+    });
   }
 
   private shatterElement(el: Phaser.Physics.Matter.Image) {
@@ -924,14 +930,94 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Draw semi-transparent blue water fill
-    const fillH = GAME_HEIGHT - WALL_T - surfaceY;
-    this.waterGfx.fillStyle(0x0055BB, 0.32);
-    this.waterGfx.fillRect(WALL_T, surfaceY, GAME_WIDTH - WALL_T * 2, fillH);
+    // waterGfx is drawn every frame by updateWaterWave()
+  }
 
-    // Water surface shimmer line
-    this.waterGfx.lineStyle(2, 0x66CCFF, 0.55);
-    this.waterGfx.lineBetween(WALL_T, surfaceY, GAME_WIDTH - WALL_T, surfaceY);
+  // Animated water surface — redrawn every frame in update()
+  private updateWaterWave() {
+    this.waterGfx.clear();
+    if (this.waterLevels <= 0) return;
+
+    this.waterPhase += 0.045;
+
+    const x0      = WALL_T;
+    const x1      = GAME_WIDTH - WALL_T;
+    const w       = x1 - x0;
+    const yB      = GAME_HEIGHT - WALL_T;
+    const baseY   = GAME_HEIGHT - WALL_T - this.waterLevels * this.WATER_STEP;
+    const AMP     = 5;
+    const STEPS   = 60;
+    const p       = this.waterPhase;
+
+    // Shared helper: y of the wave at progress t
+    const waveY = (t: number, phaseShift: number) =>
+      baseY
+      + Math.sin(t * Math.PI * 2.8 + p + phaseShift) * AMP
+      + Math.sin(t * Math.PI * 5.1 - p * 0.65 + phaseShift) * AMP * 0.38;
+
+    // ── Deep fill (dark blue body) ──────────────────────────────────────────
+    this.waterGfx.fillStyle(0x002266, 0.55);
+    this.waterGfx.beginPath();
+    this.waterGfx.moveTo(x0, yB);
+    this.waterGfx.lineTo(x0, waveY(0, 0));
+    for (let i = 1; i <= STEPS; i++) {
+      const t = i / STEPS;
+      this.waterGfx.lineTo(x0 + t * w, waveY(t, 0));
+    }
+    this.waterGfx.lineTo(x1, yB);
+    this.waterGfx.closePath();
+    this.waterGfx.fillPath();
+
+    // ── Mid fill (lighter blue, second wave for depth) ──────────────────────
+    this.waterGfx.fillStyle(0x1166CC, 0.28);
+    this.waterGfx.beginPath();
+    this.waterGfx.moveTo(x0, yB);
+    this.waterGfx.lineTo(x0, waveY(0, 0.8) + 6);
+    for (let i = 1; i <= STEPS; i++) {
+      const t = i / STEPS;
+      this.waterGfx.lineTo(x0 + t * w, waveY(t, 0.8) + 6);
+    }
+    this.waterGfx.lineTo(x1, yB);
+    this.waterGfx.closePath();
+    this.waterGfx.fillPath();
+
+    // ── Surface highlight wave ──────────────────────────────────────────────
+    this.waterGfx.lineStyle(2.2, 0x44BBFF, 0.82);
+    this.waterGfx.beginPath();
+    for (let i = 0; i <= STEPS; i++) {
+      const t = i / STEPS;
+      const wx = x0 + t * w;
+      const wy = waveY(t, 0);
+      if (i === 0) this.waterGfx.moveTo(wx, wy);
+      else         this.waterGfx.lineTo(wx, wy);
+    }
+    this.waterGfx.strokePath();
+
+    // ── Foam crest (brighter, faster secondary wave slightly above) ─────────
+    this.waterGfx.lineStyle(1.4, 0xAAEEFF, 0.48);
+    this.waterGfx.beginPath();
+    for (let i = 0; i <= STEPS; i++) {
+      const t  = i / STEPS;
+      const wx = x0 + t * w;
+      const wy = baseY - 4
+        + Math.sin(t * Math.PI * 3.9 + p * 1.6) * AMP * 0.55
+        + Math.sin(t * Math.PI * 6.5 - p * 1.1) * AMP * 0.25;
+      if (i === 0) this.waterGfx.moveTo(wx, wy);
+      else         this.waterGfx.lineTo(wx, wy);
+    }
+    this.waterGfx.strokePath();
+
+    // ── Shimmer sparkles (small bright dashes riding the wave) ─────────────
+    this.waterGfx.lineStyle(1.2, 0xCCF4FF, 0.55);
+    for (let s = 0; s < 6; s++) {
+      const t   = ((s / 6) + (p * 0.04) % 1);
+      const wx  = x0 + (t % 1) * w;
+      const wy  = waveY(t % 1, 0) - 1;
+      this.waterGfx.beginPath();
+      this.waterGfx.moveTo(wx - 5, wy);
+      this.waterGfx.lineTo(wx + 5, wy);
+      this.waterGfx.strokePath();
+    }
   }
 
   // ───────────────────────────────────────────────────────────────────────────
