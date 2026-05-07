@@ -78,13 +78,17 @@ export class TutorialOverlay {
     }).setOrigin(0.5);
     c.add(label);
 
-    // skip hint
-    const skip = s.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 22, 'Tap anywhere to skip', {
+    // SKIP button — dedicated hit area so a game-drop doesn't accidentally dismiss
+    const skipBg = s.add.graphics();
+    skipBg.fillStyle(0x000000, 0.50);
+    skipBg.fillRoundedRect(GAME_WIDTH - 68, GAME_HEIGHT - 38, 58, 26, 8);
+    const skipTxt = s.add.text(GAME_WIDTH - 39, GAME_HEIGHT - 25, 'SKIP', {
       fontFamily: '"Fredoka", sans-serif',
-      fontSize: '12px', color: '#8899bb',
+      fontSize: '13px', color: '#aabbcc',
       stroke: '#000000', strokeThickness: 2,
-    }).setOrigin(0.5).setDepth(21);
-    c.add(skip);
+    }).setOrigin(0.5).setDepth(21).setInteractive({ useHandCursor: true });
+    skipTxt.on('pointerup', () => this.dismiss());
+    c.add([skipBg, skipTxt]);
 
     // animate aim line + arrow left → right → left
     const range = (GAME_WIDTH / 2) - WALL_T - 30;
@@ -107,9 +111,6 @@ export class TutorialOverlay {
       targets: arrow, y: arrowY + 6,
       duration: 500, yoyo: true, repeat: -1, ease: 'Sine.inOut',
     });
-
-    // tap-anywhere to skip
-    s.input.once('pointerdown', () => this.dismiss());
 
     // auto-dismiss after 8 s so it never blocks
     s.time.delayedCall(8000, () => {
@@ -145,9 +146,6 @@ export class TutorialOverlay {
         stroke: '#000000', strokeThickness: 2,
       }).setOrigin(0.5);
     c.add(hint);
-
-    // tap to skip
-    s.input.once('pointerdown', () => this.dismiss());
 
     // auto-hide after 4 s
     s.time.delayedCall(4000, () => this.dismiss());
