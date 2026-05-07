@@ -6,7 +6,8 @@ import {
 import { ParticleManager }             from '../fx/ParticleManager';
 import { SoundManager, getOrCreateSoundManager } from '../fx/SoundManager';
 import { buildElementTextures, ORB_SCALE } from '../utils/buildTextures';
-import { gameplayStart, gameplayStop, requestMidgameAd } from '../ads/CrazySDK';
+import { gameplayStart, gameplayStop, requestMidgameAd, isCrazyReady } from '../ads/CrazySDK';
+import { gdRequestMidgameAd } from '../ads/GameDistributionSDK';
 
 export class GameScene extends Phaser.Scene {
 
@@ -509,11 +510,16 @@ export class GameScene extends Phaser.Scene {
         .on('pointerup', () => {
           btnHit.removeInteractive();
           btnContainer.setAlpha(0.5);
-          requestMidgameAd({
+          const adCallbacks = {
             adStarted:  () => this.sfx.forceMute(true),
             adFinished: () => { this.sfx.forceMute(false); this.scene.restart(); },
             adError:    () => { this.sfx.forceMute(false); this.scene.restart(); },
-          });
+          };
+          if (isCrazyReady()) {
+            requestMidgameAd(adCallbacks);
+          } else {
+            gdRequestMidgameAd(adCallbacks);
+          }
         });
     });
   }

@@ -3,9 +3,11 @@ import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
 import { GAME_WIDTH, GAME_HEIGHT } from './config';
 import { initCrazySDK } from './ads/CrazySDK';
+import { initGameDistributionSDK } from './ads/GameDistributionSDK';
 import { getOrCreateSoundManager } from './fx/SoundManager';
 
-initCrazySDK(); // fire and forget — degrades silently off-platform
+initCrazySDK();            // degrades silently off CrazyGames
+initGameDistributionSDK(); // wires GD audio pause/resume events
 
 // iOS suspends Web Audio unless a silent buffer is played within each
 // user-gesture. Keep the listener persistent — iOS can re-suspend after idle.

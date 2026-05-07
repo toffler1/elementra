@@ -53,6 +53,20 @@
     <p>Please rotate<br>your device</p>
   </div>
   <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+  <!-- GameDistribution SDK — GD_OPTIONS must be set before the script loads -->
+  <script>
+    window.GD_OPTIONS = {
+      gameId: "7f45ecbc5a914d518091cdcac763fc08",
+      onEvent: function(event) {
+        if (event.name === 'SDK_GAME_PAUSE') {
+          window.__gdPause && window.__gdPause();
+        } else if (event.name === 'SDK_GAME_START') {
+          window.__gdResume && window.__gdResume();
+        }
+      }
+    };
+  </script>
+  <script src="https://html5.api.gamedistribution.com/main.min.js"></script>
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

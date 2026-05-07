@@ -19,6 +19,7 @@ function getSDK(): CrazySDKType | null {
 }
 
 let ready = false;
+export function isCrazyReady(): boolean { return ready; }
 
 export async function initCrazySDK(): Promise<void> {
   try {
