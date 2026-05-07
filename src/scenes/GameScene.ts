@@ -131,6 +131,7 @@ export class GameScene extends Phaser.Scene {
     this.checkGameOver();
     this.syncOverlays();
     this.updateWaterWave();
+    this.updateBuoyancy();
   }
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -239,7 +240,7 @@ export class GameScene extends Phaser.Scene {
       this.nextPreview.setTexture('rock');
       const ps = Math.min(ROCK_RADIUS * 2.6 * 0.65, 48 * (ORB_SCALE / 2));
       this.nextPreview.setDisplaySize(ps, ps);
-      this.nextPreviewText.setText('🪨').setFontSize(`${Math.round(ps * 0.52)}px`);
+      this.nextPreviewText.setText('');
     } else {
       const nextEl = ELEMENTS[this.nextLevel - 1];
       this.nextPreview.setTexture(`el_${this.nextLevel}`);
@@ -257,11 +258,7 @@ export class GameScene extends Phaser.Scene {
       this.aimIndicator = this.add
         .image(GAME_WIDTH / 2, DROP_Y, 'rock')
         .setAlpha(0.85).setDepth(4).setDisplaySize(ds, ds);
-      this.aimIndicatorText = this.add
-        .text(GAME_WIDTH / 2, DROP_Y, '🪨', {
-          fontSize: `${Math.round(ROCK_RADIUS * 0.9)}px`,
-          padding:  { x: 6, y: 16 },
-        }).setOrigin(0.5).setAlpha(0.85).setDepth(5);
+      this.aimIndicatorText = null; // rock texture speaks for itself
     } else {
       const curEl = ELEMENTS[this.currentLevel - 1];
       this.aimIndicator = this.add
@@ -921,12 +918,15 @@ export class GameScene extends Phaser.Scene {
     );
     this.waterBody = floorBody as unknown as MatterJS.BodyType;
 
-    // Push elements below new floor upward
+    // Teleport elements that are below the new surface to just above it.
+    // Setting velocity alone is not enough — Matter.js won't resolve overlapping
+    // static bodies, so elements already inside the new floor stay stuck.
     for (const el of this.activeEls) {
       if (!el.active) continue;
-      if (el.y > surfaceY) {
-        const body = el.body as any;
-        body.velocity.y = -8;
+      const elR  = ELEMENTS[(el.getData('level') as number) - 1].radius;
+      if (el.y + elR > surfaceY) {
+        el.setPosition(el.x, surfaceY - elR - 2);
+        (el.body as any).velocity.y = -3;
       }
     }
 
@@ -1017,6 +1017,24 @@ export class GameScene extends Phaser.Scene {
       this.waterGfx.moveTo(wx - 5, wy);
       this.waterGfx.lineTo(wx + 5, wy);
       this.waterGfx.strokePath();
+    }
+  }
+
+  // Elements below the water surface float upward each frame.
+  private updateBuoyancy() {
+    if (this.waterLevels <= 0) return;
+    const surfaceY = GAME_HEIGHT - WALL_T - this.waterLevels * this.WATER_STEP;
+
+    for (const el of this.activeEls) {
+      if (!el.active) continue;
+      const elR  = ELEMENTS[(el.getData('level') as number) - 1].radius;
+      if (el.y > surfaceY) {
+        const body = el.body as any;
+        // Upward buoyancy force — overcomes gravity and floats element toward surface
+        body.velocity.y = Math.max(body.velocity.y - 0.20, -3.5);
+        // Water drag dampens lateral movement
+        body.velocity.x *= 0.96;
+      }
     }
   }
 
