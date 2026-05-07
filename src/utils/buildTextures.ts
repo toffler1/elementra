@@ -478,3 +478,107 @@ function drawInnerForce(
     }
   }
 }
+
+// ── Rock texture ────────────────────────────────────────────────────────────
+
+export const ROCK_RADIUS = 26;
+
+export function buildRockTexture(scene: Phaser.Scene): void {
+  const key = 'rock';
+  if (scene.textures.exists(key)) return;
+
+  const r    = ROCK_RADIUS;
+  const size = Math.ceil(r * 2.6);
+  const cx   = size / 2;
+  const cy   = size / 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d')!;
+
+  // ── 1. Outer soft shadow/glow ─────────────────────────────────────────
+  const shadow = ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, cx);
+  shadow.addColorStop(0,   'rgba(60,60,60,0.30)');
+  shadow.addColorStop(0.5, 'rgba(40,40,40,0.12)');
+  shadow.addColorStop(1,   'rgba(0,0,0,0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, cx, 0, Math.PI * 2);
+  ctx.fillStyle = shadow;
+  ctx.fill();
+
+  // ── 2. Clip to circle ────────────────────────────────────────────────
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  // ── 3. Grey radial gradient body ────────────────────────────────────
+  const body = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.2, 0, cx, cy, r);
+  body.addColorStop(0,    'rgb(175,175,175)');
+  body.addColorStop(0.45, 'rgb(115,115,115)');
+  body.addColorStop(0.80, 'rgb(68,68,68)');
+  body.addColorStop(1,    'rgb(28,28,28)');
+  ctx.fillStyle = body;
+  ctx.fillRect(0, 0, size, size);
+
+  // ── 4. Rocky surface patches ─────────────────────────────────────────
+  const rand = rng(9999); // deterministic seed for rock
+  for (let i = 0; i < 7; i++) {
+    const px = cx + (rand() - 0.5) * r * 1.3;
+    const py = cy + (rand() - 0.5) * r * 1.3;
+    const pr = r * (0.10 + rand() * 0.20);
+    const pg = ctx.createRadialGradient(px, py, 0, px, py, pr);
+    pg.addColorStop(0, 'rgba(30,30,30,0.45)');
+    pg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  // ── 5. Deterministic crack lines ─────────────────────────────────────
+  ctx.strokeStyle = 'rgba(20,20,20,0.75)';
+  ctx.lineWidth   = 1.2;
+  for (let i = 0; i < 5; i++) {
+    const a0 = rand() * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    let x = cx, y = cy;
+    for (let j = 0; j < 4; j++) {
+      x += Math.cos(a0 + (rand() - 0.5) * 0.9) * r * 0.22;
+      y += Math.sin(a0 + (rand() - 0.5) * 0.9) * r * 0.22;
+      ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  // ── 6. Rim darkening ─────────────────────────────────────────────────
+  const rim = ctx.createRadialGradient(cx, cy, r * 0.55, cx, cy, r);
+  rim.addColorStop(0,    'rgba(0,0,0,0)');
+  rim.addColorStop(0.65, 'rgba(0,0,0,0.22)');
+  rim.addColorStop(1,    'rgba(0,0,0,0.72)');
+  ctx.fillStyle = rim;
+  ctx.fillRect(0, 0, size, size);
+
+  ctx.restore(); // end clip
+
+  // ── 7. Dark outline ──────────────────────────────────────────────────
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(10,10,10,0.80)';
+  ctx.lineWidth   = 1.8;
+  ctx.stroke();
+
+  // ── 8. Specular highlight (upper-left) ───────────────────────────────
+  const spec = ctx.createRadialGradient(
+    cx - r * 0.32, cy - r * 0.36, 0,
+    cx - r * 0.32, cy - r * 0.36, r * 0.22,
+  );
+  spec.addColorStop(0,    'rgba(255,255,255,0.85)');
+  spec.addColorStop(0.50, 'rgba(220,220,220,0.40)');
+  spec.addColorStop(1,    'rgba(255,255,255,0)');
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.32, cy - r * 0.36, r * 0.22, 0, Math.PI * 2);
+  ctx.fillStyle = spec;
+  ctx.fill();
+
+  scene.textures.addCanvas(key, canvas);
+}
