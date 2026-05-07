@@ -8,6 +8,7 @@ import { SoundManager, getOrCreateSoundManager } from '../fx/SoundManager';
 import { buildElementTextures, ORB_SCALE } from '../utils/buildTextures';
 import { gameplayStart, gameplayStop, requestMidgameAd, isCrazyReady } from '../ads/CrazySDK';
 import { gdRequestMidgameAd } from '../ads/GameDistributionSDK';
+import { TutorialOverlay }    from '../ui/TutorialOverlay';
 
 export class GameScene extends Phaser.Scene {
 
@@ -23,6 +24,8 @@ export class GameScene extends Phaser.Scene {
   // --- fx ---
   private particles!: ParticleManager;
   private sfx!:       SoundManager;
+  private tutorial:   TutorialOverlay | null = null;
+  private dropCount   = 0;
 
   // --- game objects ---
   private scoreText!:    Phaser.GameObjects.Text;
@@ -52,6 +55,9 @@ export class GameScene extends Phaser.Scene {
     this.sfx       = getOrCreateSoundManager();
     this.particles = new ParticleManager(this);
 
+    this.dropCount = 0;
+    this.tutorial  = null;
+
     this.buildTextures();
     this.buildBackground();
     this.dropGuide = this.add.graphics().setDepth(1);
@@ -61,6 +67,11 @@ export class GameScene extends Phaser.Scene {
     this.setupInput();
     this.setupCollisions();
     gameplayStart();
+
+    if (TutorialOverlay.shouldShow()) {
+      this.tutorial = new TutorialOverlay(this);
+      this.tutorial.show();
+    }
   }
 
   update() {
@@ -214,6 +225,8 @@ export class GameScene extends Phaser.Scene {
     this.sfx.playDrop();
     this.spawnElement(x, DROP_Y, this.currentLevel);
     this.lastDropTime = this.time.now;
+    this.dropCount++;
+    if (this.dropCount === 1) this.tutorial?.onFirstDrop();
 
     this.canDrop = false;
     this.aimIndicator.setVisible(false);
@@ -312,6 +325,7 @@ export class GameScene extends Phaser.Scene {
     this.particles.burst(mx, my, level);
     this.flashMerge(mx, my, level);
     this.showMergeLabel(mx, my, nxt);
+    this.tutorial?.onFirstMerge();
 
     // screenshake on ALL levels — scales with level
     this.cameras.main.shake(55 + level * 8, 0.002 + level * 0.0008);
