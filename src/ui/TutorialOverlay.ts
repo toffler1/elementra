@@ -87,7 +87,10 @@ export class TutorialOverlay {
       fontSize: '13px', color: '#aabbcc',
       stroke: '#000000', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(21).setInteractive({ useHandCursor: true });
-    skipTxt.on('pointerup', () => this.dismiss());
+    skipTxt.on('pointerup', (_p: any, _lx: any, _ly: any, event: any) => {
+      event.stopPropagation();
+      this.dismiss();
+    });
     c.add([skipBg, skipTxt]);
 
     // animate aim line + arrow left → right → left
