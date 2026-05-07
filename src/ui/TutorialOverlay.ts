@@ -178,10 +178,9 @@ export class TutorialOverlay {
     card.strokeRoundedRect(cx - 158, y - 30, 316, 68, 14);
     c.add(card);
 
-    // rock icon (small image if texture exists, otherwise emoji fallback)
-    const rockIcon = s.add.text(cx - 130, y - 8, '🪨', {
-      fontSize: '22px',
-    }).setOrigin(0.5);
+    // rock icon — use the canvas texture, not a Text object (Text has a visible padding rect)
+    const rockIcon = s.add.image(cx - 130, y - 8, 'rock')
+      .setDisplaySize(28, 28).setOrigin(0.5);
     c.add(rockIcon);
 
     // line 1
