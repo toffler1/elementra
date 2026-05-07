@@ -49,102 +49,128 @@ export class SoundManager {
   }
 
   // ── Music ────────────────────────────────────────────────────────────
-  // Ambient A-minor pad + gentle pentatonic arpeggio, loops indefinitely.
-  // Safe to call multiple times — second call is a no-op.
+  // Upbeat C-major chiptune: clear square-wave melody + punchy bass.
+  // No sustained pads — clean, fun, loopable. Safe to call multiple times.
 
   startMusic(): void {
     if (this.musicGain) return;
 
     const ctx = this.context();
+    const BPM = 128;
+    const q   = 60 / BPM;        // quarter note ≈ 0.469 s
+    const e   = q / 2;           // eighth  note ≈ 0.234 s
 
-    // Dedicated music bus so we can fade in/out independently
+    // Music bus
     const bus = ctx.createGain();
     bus.gain.setValueAtTime(0, ctx.currentTime);
-    bus.gain.linearRampToValueAtTime(0.55, ctx.currentTime + 3.0);
+    bus.gain.linearRampToValueAtTime(0.7, ctx.currentTime + 0.4);
     bus.connect(this.master!);
     this.musicGain = bus;
 
-    // Warm low-pass filter
+    // Soft low-pass to tame square-wave harshness
     const lpf = ctx.createBiquadFilter();
     lpf.type = 'lowpass';
-    lpf.frequency.value = 900;
-    lpf.Q.value = 0.7;
+    lpf.frequency.value = 2200;
     lpf.connect(bus);
 
-    // Simple shimmer delay (poor-man's reverb)
-    const delay    = ctx.createDelay(0.7);
-    const feedback = ctx.createGain();
-    const delayOut = ctx.createGain();
-    delay.delayTime.value = 0.40;
-    feedback.gain.value   = 0.38;
-    delayOut.gain.value   = 0.28;
-    delay.connect(feedback);
-    feedback.connect(delay);
-    delay.connect(delayOut);
-    delayOut.connect(bus);
+    // Short echo for playful bounce (no sustained reverb)
+    const echo    = ctx.createDelay(0.25);
+    const echoFb  = ctx.createGain();
+    const echoOut = ctx.createGain();
+    echo.delayTime.value = q * 0.75;   // dotted-eighth echo
+    echoFb.gain.value    = 0.20;
+    echoOut.gain.value   = 0.18;
+    echo.connect(echoFb); echoFb.connect(echo);
+    echo.connect(echoOut); echoOut.connect(bus);
 
-    // ── Pad: A-minor chord (A2 E3 A3 C4), gentle sine waves ──────────
-    const padFreqs  = [110, 165, 220, 262];
-    const detunes   = [+4, -3, +2, -4];
-    padFreqs.forEach((freq, i) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type            = 'sine';
-      osc.frequency.value = freq;
-      osc.detune.value    = detunes[i];
-      gain.gain.value     = 0.09;
-      osc.connect(gain);
-      gain.connect(lpf);
-      osc.start();
-      this.musicOscs.push(osc);
-    });
+    // ── Melody: C-major, high octave (C5–B5), square wave ───────────
+    // 16 eighth-note pattern (4 bars of 4/4):
+    // E5 G5 A5 G5 | E5 C5 D5 E5 | G5 A5 B5 A5 | G5 E5 C5 –
+    const M = 0; // rest
+    const melSeq: [number, number][] = [  // [freq, duration]
+      [659, e],[784, e],[880, e],[784, e],
+      [659, e],[523, e],[587, e],[659, e],
+      [784, e],[880, e],[988, e],[880, e],
+      [784, e],[659, e],[523, q],[M, e],
+    ];
+    const loopDur = melSeq.reduce((s, [, d]) => s + d, 0);
 
-    // Slow vibrato LFO on pad root (A2) for movement
-    const lfo     = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.type            = 'sine';
-    lfo.frequency.value = 0.18;
-    lfoGain.gain.value  = 3;        // ±3 cents
-    lfo.connect(lfoGain);
-    lfoGain.connect(this.musicOscs[0].detune);
-    lfo.start();
-    this.musicOscs.push(lfo);
+    // ── Bass: triangle, punchy quarter-note roots ────────────────────
+    // C3  –   F3  –  | G3  –   C3  –
+    const bassSeq: [number, number][] = [
+      [131, q],[M, q],[175, q],[M, q],
+      [196, q],[M, q],[131, q],[M, q],
+    ];
 
-    // ── Arpeggio: A-minor pentatonic up→down ─────────────────────────
-    // A3 C4 E4 G4 A4 G4 E4 C4
-    const arpFreqs = [220, 262, 330, 392, 440, 392, 330, 262];
-    const step     = 0.48;          // seconds per note
-    const loopMs   = arpFreqs.length * step * 1000;
+    // ── Chord accent: brief stab on beat 1 of bars 1 & 3 ────────────
+    const chordSeq: [number[], number][] = [
+      [[262,330,392], e * 0.6],  // C major
+      [[175,262,349], e * 0.6],  // F major
+    ];
+    const chordBeats = [0, q * 4]; // bar 1 and bar 3 start times
 
-    const scheduleArp = () => {
+    const scheduleLoop = () => {
       if (!this.musicGain) return;
-      const t0 = ctx.currentTime + 0.02; // tiny lookahead
-      arpFreqs.forEach((freq, i) => {
-        const t   = t0 + i * step;
-        const osc = ctx.createOscillator();
-        const g   = ctx.createGain();
-        osc.type            = 'triangle';
-        osc.frequency.value = freq;
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.055, t + 0.06);
-        g.gain.exponentialRampToValueAtTime(0.001, t + step * 0.80);
-        osc.connect(g);
-        g.connect(delay);        // arp goes through shimmer
-        osc.start(t);
-        osc.stop(t + step * 0.85);
+      const t0 = ctx.currentTime + 0.03;
+
+      // melody
+      let t = t0;
+      for (const [freq, dur] of melSeq) {
+        if (freq > 0) {
+          const osc = ctx.createOscillator();
+          const g   = ctx.createGain();
+          osc.type = 'square';
+          osc.frequency.value = freq;
+          g.gain.setValueAtTime(0.09, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.78);
+          osc.connect(g); g.connect(lpf); g.connect(echo);
+          osc.start(t); osc.stop(t + dur * 0.82);
+        }
+        t += dur;
+      }
+
+      // bass
+      t = t0;
+      for (const [freq, dur] of bassSeq) {
+        if (freq > 0) {
+          const osc = ctx.createOscillator();
+          const g   = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          g.gain.setValueAtTime(0.18, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + dur * 0.55);
+          osc.connect(g); g.connect(bus);
+          osc.start(t); osc.stop(t + dur * 0.6);
+        }
+        t += dur;
+      }
+
+      // chord accents
+      chordBeats.forEach((beat, ci) => {
+        const [notes, dur] = chordSeq[ci % chordSeq.length];
+        notes.forEach(freq => {
+          const osc = ctx.createOscillator();
+          const g   = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          g.gain.setValueAtTime(0.06, t0 + beat);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + beat + dur);
+          osc.connect(g); g.connect(bus);
+          osc.start(t0 + beat); osc.stop(t0 + beat + dur + 0.01);
+        });
       });
     };
 
-    scheduleArp();
+    scheduleLoop();
     const tick = () => {
       if (!this.musicGain) return;
-      scheduleArp();
-      this.musicTimer = setTimeout(tick, loopMs);
+      scheduleLoop();
+      this.musicTimer = setTimeout(tick, loopDur * 1000);
     };
-    this.musicTimer = setTimeout(tick, loopMs);
+    this.musicTimer = setTimeout(tick, loopDur * 1000);
   }
 
-  stopMusic(fadeSecs = 1.5): void {
+  stopMusic(fadeSecs = 1.0): void {
     if (!this.musicGain) return;
 
     if (this.musicTimer !== null) {

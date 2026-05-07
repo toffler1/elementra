@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0d0d2e; }
+  #c { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const W = window.innerWidth  || 800;
+const H = window.innerHeight || 800;
+const c = document.getElementById('c');
+c.width = W; c.height = H;
+const ctx = c.getContext('2d');
+
+// Background gradient
+const bg = ctx.createLinearGradient(0, 0, W, H);
+bg.addColorStop(0,   '#07071a');
+bg.addColorStop(0.5, '#0d0d2e');
+bg.addColorStop(1,   '#1a0a2e');
+ctx.fillStyle = bg;
+ctx.fillRect(0, 0, W, H);
+
+// Stars
+ctx.fillStyle = 'rgba(255,255,255,0.7)';
+const rng = (s) => { let x = Math.sin(s) * 43758; return x - Math.floor(x); };
+for (let i = 0; i < 120; i++) {
+  const x = rng(i * 3.1) * W;
+  const y = rng(i * 7.3) * H;
+  const r = rng(i * 2.7) * 1.5 + 0.3;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Element data: color, emoji
+const ELEMS = [
+  { color: '#FF6B35', emoji: '✨' },
+  { color: '#FF2200', emoji: '🔥' },
+  { color: '#0099FF', emoji: '💧' },
+  { color: '#9B6B3A', emoji: '⛰️' },
+  { color: '#99CCFF', emoji: '💨' },
+  { color: '#FFDD00', emoji: '⚡' },
+  { color: '#CCEEFF', emoji: '❄️' },
+  { color: '#FF4400', emoji: '🌋' },
+  { color: '#AA00EE', emoji: '🌪️' },
+  { color: '#9933FF', emoji: '🪐' },
+];
+
+function drawOrb(x, y, r, hexColor, emoji) {
+  const hex = parseInt(hexColor.slice(1), 16);
+  const rv = (hex >> 16) & 0xff, gv = (hex >> 8) & 0xff, bv = hex & 0xff;
+  const lighten = (c) => Math.round(c + (255 - c) * 0.6);
+  const darken  = (c) => Math.round(c * 0.5);
+
+  // Glow
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 1.6);
+  glow.addColorStop(0,   hexColor + '55');
+  glow.addColorStop(1,   'transparent');
+  ctx.beginPath(); ctx.arc(x, y, r * 1.6, 0, Math.PI * 2);
+  ctx.fillStyle = glow; ctx.fill();
+
+  // Orb body
+  const grad = ctx.createRadialGradient(x - r * 0.45, y - r * 0.38, 0, x, y, r);
+  grad.addColorStop(0,   `rgb(${lighten(rv)},${lighten(gv)},${lighten(bv)})`);
+  grad.addColorStop(0.6, hexColor);
+  grad.addColorStop(1,   `rgb(${darken(rv)},${darken(gv)},${darken(bv)})`);
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Shine
+  ctx.beginPath(); ctx.arc(x - r * 0.28, y - r * 0.28, r * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fill();
+
+  // Emoji
+  ctx.font = `${Math.round(r * 1.1)}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, x, y + r * 0.07);
+}
+
+// ---- Layout depending on aspect ----
+const aspect = W / H;
+
+if (aspect > 1.5) {
+  // LANDSCAPE 1920x1080
+  // Left: game orbs arranged nicely, Right: title + tagline
+  const cx = W * 0.25, cy = H * 0.5;
+  const baseR = H * 0.072;
+  // Big central orb (Cosmos)
+  drawOrb(cx, cy, baseR * 2.1, ELEMS[9].color, ELEMS[9].emoji);
+  // Ring of orbs around center
+  const ring = [0,1,2,3,4,5,6,7,8];
+  ring.forEach((ei, i) => {
+    const angle = (i / ring.length) * Math.PI * 2 - Math.PI / 2;
+    const ox = cx + Math.cos(angle) * baseR * 3.8;
+    const oy = cy + Math.sin(angle) * baseR * 3.8;
+    drawOrb(ox, oy, baseR * 1.1, ELEMS[ei].color, ELEMS[ei].emoji);
+  });
+
+  // Title
+  const tx = W * 0.67, ty = H * 0.38;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `bold ${H * 0.16}px "Fredoka","Arial Black",sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = '#6633ff'; ctx.shadowBlur = 40;
+  ctx.fillText('ELEMENTRA', tx, ty);
+  ctx.shadowBlur = 0;
+
+  // Stroke
+  ctx.strokeStyle = '#3333cc'; ctx.lineWidth = H * 0.008;
+  ctx.strokeText('ELEMENTRA', tx, ty);
+
+  ctx.font = `${H * 0.055}px "Fredoka","Arial",sans-serif`;
+  ctx.fillStyle = '#aaaadd';
+  ctx.fillText('Drop. Merge. Ascend.', tx, ty + H * 0.1);
+
+  ctx.font = `${H * 0.035}px "Fredoka","Arial",sans-serif`;
+  ctx.fillStyle = '#7788aa';
+  ctx.fillText('10 Elements to Discover', tx, ty + H * 0.175);
+
+} else if (aspect < 0.85) {
+  // PORTRAIT 800x1200
+  const cx = W / 2, cy = H * 0.56;
+  const baseR = W * 0.085;
+  drawOrb(cx, cy, baseR * 2.2, ELEMS[9].color, ELEMS[9].emoji);
+  const ring = [0,1,2,3,4,5,6,7,8];
+  ring.forEach((ei, i) => {
+    const angle = (i / ring.length) * Math.PI * 2 - Math.PI / 2;
+    const ox = cx + Math.cos(angle) * baseR * 4.1;
+    const oy = cy + Math.sin(angle) * baseR * 4.1;
+    drawOrb(ox, oy, baseR * 1.2, ELEMS[ei].color, ELEMS[ei].emoji);
+  });
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `bold ${W * 0.135}px "Fredoka","Arial Black",sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = '#6633ff'; ctx.shadowBlur = 40;
+  ctx.fillText('ELEMENTRA', W / 2, H * 0.125);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#3333cc'; ctx.lineWidth = W * 0.007;
+  ctx.strokeText('ELEMENTRA', W / 2, H * 0.125);
+
+  ctx.font = `${W * 0.055}px "Fredoka","Arial",sans-serif`;
+  ctx.fillStyle = '#aaaadd'; ctx.shadowBlur = 0;
+  ctx.fillText('Drop. Merge. Ascend.', W / 2, H * 0.205);
+
+  ctx.font = `${W * 0.038}px "Fredoka","Arial",sans-serif`;
+  ctx.fillStyle = '#7788aa';
+  ctx.fillText('10 Elements to Discover  •  Physics Puzzle', W / 2, H * 0.9);
+
+} else {
+  // SQUARE 800x800
+  const cx = W / 2, cy = H * 0.52;
+  const baseR = W * 0.082;
+  drawOrb(cx, cy, baseR * 2.1, ELEMS[9].color, ELEMS[9].emoji);
+  const ring = [0,1,2,3,4,5,6,7,8];
+  ring.forEach((ei, i) => {
+    const angle = (i / ring.length) * Math.PI * 2 - Math.PI / 2;
+    const ox = cx + Math.cos(angle) * baseR * 3.8;
+    const oy = cy + Math.sin(angle) * baseR * 3.8;
+    drawOrb(ox, oy, baseR * 1.1, ELEMS[ei].color, ELEMS[ei].emoji);
+  });
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `bold ${W * 0.13}px "Fredoka","Arial Black",sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = '#6633ff'; ctx.shadowBlur = 40;
+  ctx.fillText('ELEMENTRA', W / 2, H * 0.14);
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = '#3333cc'; ctx.lineWidth = W * 0.007;
+  ctx.strokeText('ELEMENTRA', W / 2, H * 0.14);
+
+  ctx.font = `${W * 0.05}px "Fredoka","Arial",sans-serif`;
+  ctx.fillStyle = '#aaaadd';
+  ctx.fillText('Drop. Merge. Ascend.', W / 2, H * 0.215);
+}
+
+</script>
+</body>
+</html>
